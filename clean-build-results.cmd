@@ -1,5 +1,5 @@
 @echo off
-pushd c:\code\kattis
+pushd c:\code\AdventOfCode
 del /S *.exe
 del /S *.pdb
 del /S *.ilk 

@@ -8,7 +8,7 @@
 int main()
 {
     constexpr uint32_t c_boardSize{1000};
-    std::array<std::array<uint32_t, c_boardSize>, c_boardSize> board{};
+    static std::array<std::array<uint32_t, c_boardSize>, c_boardSize> board{}; // exceeds max stack size, so must be static
 
     std::string input;
     while (std::getline(std::cin, input))
@@ -17,6 +17,14 @@ int main()
         char pound, at, comma, colon, by;
         uint32_t id, x, y, width, height;
         tempStream >> pound >> id >> at >> x >> comma >> y >> colon >> width >> by >> height;
+
+        for (auto i = x; i < (x + width); ++i)
+        {
+            for (auto j = y; j < (y + height); ++j)
+            {
+                board[i][j]++;
+            }
+        }
         // std::cout << "Id " << id << ": [" << x << "," << y << "," << width << "," << height << "]" << std::endl;
     }
 
@@ -31,7 +39,7 @@ int main()
             }
         }
     }
-    std::cout << "The answer is: " << total << std::endl;
+    std::cout << total << std::endl;
 
     return 0;
 }
