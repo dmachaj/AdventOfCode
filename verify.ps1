@@ -1,10 +1,12 @@
+param([string]$SubDir)
+
 $exePath = Join-Path (Get-Location) "main.exe"
 
-$sampleInputs = Get-ChildItem ".\*.in"
+$sampleInputs = Get-ChildItem (".\" + $subdir + "\*.in")
 foreach ($input in $sampleInputs)
 {
     Write-Host "Verifying" $input.Name
-    $answerFile = $input.Name.Replace(".in", ".ans")
+    $answerFile = $input.FullName.Replace(".in", ".ans")
     if (Test-Path $answerFile)
     {
         $stopwatch = [system.diagnostics.stopwatch]::StartNew()
