@@ -57,24 +57,11 @@ namespace
             case 4: // output param
             {
                 const auto param1 = firstParamImmediate ? program[instructionCounter + 1] : program[program[instructionCounter + 1]];
+                if (resultCode != 0)
+                {
+                    std::cerr << "Error: Two output values" << std::endl;
+                }
                 resultCode = param1;
-                // if (param1 == 0)
-                // {
-                //     // previous instruction passed self-test
-                // }
-                // else if (program[instructionCounter + 2] == 99)
-                // {
-                //     if (resultCode != 0)
-                //     {
-                //         std::cerr << "Error: Two output values" << std::end%l;
-                //     }
-                //     resultCode = param1;
-                // }
-                // else
-                // {
-                //     std::cerr << "Error" << std::endl;
-                //     // error
-                // }
                 instructionCounter += 2;
                 if (program[instructionCounter] != 99 && returnOnOutput)
                 {
@@ -135,7 +122,7 @@ namespace
         }
 
         const bool halted = (program[instructionCounter] == 99);
-        if (halted && resultCode == 0)
+        if (halted && (resultCode == 0) && (inputCount < inputs.size()))
         {
             resultCode = inputs[inputCount];
         }
