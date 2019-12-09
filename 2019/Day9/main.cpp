@@ -192,7 +192,7 @@ namespace
     }
 
     constexpr size_t c_memorySize{10000};
-    void Part1()
+    void ExecuteFullProblem(uint32_t mode)
     {
         std::vector<int64_t> program{};
         program.reserve(c_memorySize);
@@ -209,7 +209,7 @@ namespace
         }
 
         ProgramState state {program, 0, 0};
-        const auto result = ExecuteProgram(state, {1} /* test input */);
+        const auto result = ExecuteProgram(state, {mode} /* test input */);
         std::ostringstream outStream;
         for (const auto& resultVal : result )
         {
@@ -220,15 +220,20 @@ namespace
         std::cout << resultString.substr(0, resultString.length() - 1) << std::endl;
     }
 
+    void Part1()
+    {
+        ExecuteFullProblem(1);
+    }
+
     void Part2()
     {
-        std::cout << 0 << std::endl;
+        ExecuteFullProblem(2);
     }
 }
 
 int main()
 {
-    Part1();
-    // Part2();
+    // Part1();
+    Part2();
     return 0;
 }
