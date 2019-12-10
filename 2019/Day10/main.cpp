@@ -130,79 +130,55 @@ namespace
         std::cout << result.numVisible << std::endl;
     }
 
-    double VectorAngle(int32_t x, int32_t y)
-    {
-        // if (x == 0) // special cases
-        // {
-        //     return (y > 0) ? 90 : 270;
-        // }
-        // else if (y == 0) // special cases
-        // {
-        //     return (x >= 0) ? 0 : 180;
-        // }
-        
-        double magnitude = sqrt((y * y) + (x * x));
-        double riseUnit = (double)y / magnitude;
-        double runUnit = (double)x / magnitude;
-        // const auto angle = (int32_t)((atan2(riseUnit, runUnit) / 3.14) * 180);
-        return (atan2(riseUnit, runUnit) / 3.14) * 180;
-        // if (x < 0 && y < 0) // quadrant Ⅲ
-        // {
-        //     return 180 + angle;
-        // }
-        // else if (x < 0) // quadrant Ⅱ
-        // {
-        //     return 180 + angle; // it actually substracts
-        // }
-        // else if (y < 0) // quadrant Ⅳ
-        // {
-        //     return 270 + (90 + angle); // it actually substracts
-        // }
-        // return angle;
-    }
-
     void Part2()
     {
         auto data = ReadInput();
         const auto result = FindBestAsteroid(data);
         std::cerr << "The best asteroid is " << result.bestLocation.first << "," << result.bestLocation.second << std::endl;
         uint32_t asteroidsZapped{};
-        double currentAngle{90.0}; // 90 degrees is straight up on the unit circle
-        std::pair<int32_t, int32_t> currentZapTarget{};
         while (asteroidsZapped < 200)
         {
-            double smallestAngleDiff{360};
+            struct HitData
+            {
+                std::pair<int32_t, int32_t> coord;
+                double angle;
+            };
+            std::vector<HitData> currentZapTargets{};
+
             CheckVisibility(data.asteroidField, data.rows, data.columns, result.bestLocation.first, result.bestLocation.second,
                 [&](int32_t x, int32_t y)
                 {
                     auto rise = (y - result.bestLocation.second) * -1; // negate because euclidean coords count up from the center not down from the top
                     auto run = x - result.bestLocation.first;
 
-                    const auto angle = VectorAngle(run, rise);
+                    const auto angle = (atan2(rise, run) / 3.1415926535897932384) * 180;
 
-                    auto angleDiff = (currentAngle + 0.1) - angle;
-                    if (angleDiff < 0)
-                    {
-                        angleDiff += 360;
-                    }
-
-                    if (angleDiff < smallestAngleDiff)
-                    {
-                        smallestAngleDiff = angleDiff;
-                        currentZapTarget = std::make_pair(x, y);
-                    }
+                    HitData match {std::make_pair(x, y), angle};
+                    currentZapTargets.emplace_back(std::move(match));
                 });
-            
-            currentAngle -= (smallestAngleDiff + 0.01);
-            if (currentAngle < 0)
+
+            std::sort(currentZapTargets.begin(), currentZapTargets.end(), [](HitData& first, HitData& second) -> bool
             {
-                currentAngle += 360;
+                auto firstDiff = 90.0 - first.angle;
+                if (firstDiff < 0) { firstDiff += 360; }
+                auto secondDiff = 90.0 - second.angle;
+                if (secondDiff < 0) { secondDiff += 360; }
+                return (firstDiff < secondDiff);
+            });
+
+            for (const auto& zaps: currentZapTargets)
+            {
+                data.asteroidField[zaps.coord.second * data.columns + zaps.coord.first] = false; // ZAP!
+                asteroidsZapped++;
+                // std::cerr << asteroidsZapped << "th asteroid at " << zaps.coord.first << "," << zaps.coord.second << std::endl;
+                if (asteroidsZapped >= 200)
+                {
+                    std::cerr << "The 200th asteroid is at " << zaps.coord.first << "," << zaps.coord.second << std::endl;
+                    std::cout << (zaps.coord.first * 100) + zaps.coord.second << std::endl;
+                    break;
+                }
             }
-            data.asteroidField[currentZapTarget.second * data.columns + currentZapTarget.first] = false; // ZAP!
-            asteroidsZapped++;
-            std::cerr << asteroidsZapped << "th asteroid at " << currentZapTarget.first << "," << currentZapTarget.second << std::endl;
         }
-        std::cout << (currentZapTarget.first * 100) + currentZapTarget.second << std::endl;
     }
 }
 
@@ -210,5 +186,5 @@ int main()
 {
     // Part1();
     Part2();
-    // return 0;
+    return 0;
 }
