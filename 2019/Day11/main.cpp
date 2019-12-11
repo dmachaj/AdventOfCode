@@ -283,13 +283,104 @@ namespace
 
     void Part2()
     {
-        std::cout << 0 << std::endl;
+        std::vector<int64_t> program{};
+        program.reserve(c_memorySize);
+
+        std::string input;
+        while (std::getline(std::cin, input, ','))
+        {
+            program.emplace_back(std::atoll(input.c_str()));
+        }
+
+        for (auto i = program.size(); i < c_memorySize; ++i)
+        {
+            program.emplace_back(0);
+        }
+
+        constexpr size_t c_width{100};
+        constexpr size_t c_height{100};
+        std::array<bool, c_width * c_height> panel{false}; // false = black, true = white
+        std::array<bool, c_width * c_height> visitedPanels{false};
+        std::pair<uint32_t, uint32_t> robotPosition{50, 50};
+        int32_t robotDirection{0}; // 0 = up, 1 = right, 2 = down, 3 = left
+
+        ProgramState state {program, 0, 0};
+        panel[(robotPosition.second * c_width) + robotPosition.first] = true;
+        while (true)
+        {
+            const auto currentIndex = (robotPosition.second * c_width) + robotPosition.first;
+            const auto currentColor = panel[currentIndex];
+            std::vector<uint64_t> programInput{currentColor ? 1ULL : 0ULL};
+            const auto result = ExecuteProgram(state, programInput);
+            if (result.size() == 0)
+            {
+                break;
+            }
+
+            // std::cerr << "Index: " << currentIndex << std::endl;
+            // std::cerr << "Robot at [" << robotPosition.first << "][" << robotPosition.second << "].  Will paint " << 
+            //     (result[0] ? "white" : "black") << " and then turn " <<
+            //     (result[1] ? "right" : "left") << std::endl;
+
+            if (result[0] == 1ULL)
+            {
+                panel[currentIndex] = true;
+            }
+            else
+            {
+                panel[currentIndex] = false;
+            }
+            
+            visitedPanels[currentIndex] = true;
+
+            if (result[1] == 1) // turn right
+            {
+                robotDirection++;
+                robotDirection %= 4;
+            }
+            else
+            {
+                robotDirection--;
+                if (robotDirection < 0)
+                {
+                    robotDirection = 3;
+                }
+            }
+            
+            switch (robotDirection)
+            {
+                case 0: // up
+                    robotPosition.second--;
+                    break;
+                case 1: // right
+                    robotPosition.first++;
+                    break;
+                case 2: // down
+                    robotPosition.second++;
+                    break;
+                case 3: // left
+                    robotPosition.first--;
+                    break;
+                default:
+                    throw std::exception("oops");
+            }
+        }
+
+        for (auto x = 0UL; x < c_width; ++x)
+        {
+            for (auto y = 0UL; y < c_height; ++y)
+            {
+                std::cout << (panel[(y * c_width) + x] ? "#" : ".");
+            }
+            std::cout << std::endl;
+        }
+        // ZCGRHKLB is spelled out in # and .
     }
 }
 
 int main()
 {
-    Part1();
-    // Part2();
+    // Part1();
+    Part2();
     return 0;
 }
