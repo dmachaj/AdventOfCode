@@ -60,12 +60,10 @@ namespace
                         if (moons[iMoon].x >= moons[otherMoon].x)
                         {
                             moons[iMoon].dx--;
-                            // moons[otherMoon].dx++;
                         }
                         else
                         {
                             moons[iMoon].dx++;
-                            // moons[otherMoon].dx--;
                         }
                         
                     }
@@ -75,12 +73,10 @@ namespace
                         if (moons[iMoon].y >= moons[otherMoon].y)
                         {
                             moons[iMoon].dy--;
-                            // moons[otherMoon].dy++;
                         }
                         else
                         {
                             moons[iMoon].dy++;
-                            // moons[otherMoon].dy--;
                         }
                         
                     }
@@ -90,12 +86,10 @@ namespace
                         if (moons[iMoon].z >= moons[otherMoon].z)
                         {
                             moons[iMoon].dz--;
-                            // moons[otherMoon].dz++;
                         }
                         else
                         {
                             moons[iMoon].dz++;
-                            // moons[otherMoon].dz--;
                         }
                         
                     }
@@ -122,23 +116,37 @@ namespace
         std::cout << totalEnergy << std::endl;
     }
 
-        struct MoonData
-        {
-            int32_t x{};
-            int32_t y{};
-            int32_t z{};
+    struct MoonData
+    {
+        int32_t x{};
+        int32_t y{};
+        int32_t z{};
+        int32_t dx{};
+        int32_t dy{};
+        int32_t dz{};
+    };
 
-            int32_t dx{};
-            int32_t dy{};
-            int32_t dz{};
+    bool operator== (const MoonData& first, const MoonData& second)
+    {
+        return (first.x == second.x) && (first.y == second.y) && (first.z == second.z) &&
+               (first.dx == second.dx) && (first.dy == second.dy) && (first.dz == second.dz);
+    }
 
-        };
-    
-        bool operator== (const MoonData& first, const MoonData& second)
+    uint64_t LowestCommonDenominator(uint64_t first, uint64_t second)
+    {
+        while (true)
         {
-            return (first.x == second.x) && (first.y == second.y) && (first.z == second.z) &&
-                   (first.dx == second.dx) && (first.dy == second.dy) && (first.dz == second.dz);
+            if (first == 0) { return second; }
+            second %= first;
+            if (second == 0) { return first; }
+            first %= second;
         }
+    }
+
+    uint64_t LeastCommonMultiple(uint64_t first, uint64_t second)
+    {
+        return (first * second) / LowestCommonDenominator(first, second);
+    }
 
     void Part2()
     {
@@ -163,7 +171,7 @@ namespace
         }
 
         const auto moonsCopy = moons;
-        uint64_t cycleCount{};
+        uint64_t cycleCountX{};
         while (true)
         {
             // Update velocity
@@ -178,44 +186,11 @@ namespace
                         if (moons[iMoon].x >= moons[otherMoon].x)
                         {
                             moons[iMoon].dx--;
-                            // moons[otherMoon].dx++;
                         }
                         else
                         {
                             moons[iMoon].dx++;
-                            // moons[otherMoon].dx--;
                         }
-                        
-                    }
-
-                    if (moons[iMoon].y != moons[otherMoon].y)
-                    {
-                        if (moons[iMoon].y >= moons[otherMoon].y)
-                        {
-                            moons[iMoon].dy--;
-                            // moons[otherMoon].dy++;
-                        }
-                        else
-                        {
-                            moons[iMoon].dy++;
-                            // moons[otherMoon].dy--;
-                        }
-                        
-                    }
-                    
-                    if (moons[iMoon].z != moons[otherMoon].z)
-                    {
-                        if (moons[iMoon].z >= moons[otherMoon].z)
-                        {
-                            moons[iMoon].dz--;
-                            // moons[otherMoon].dz++;
-                        }
-                        else
-                        {
-                            moons[iMoon].dz++;
-                            // moons[otherMoon].dz--;
-                        }
-                        
                     }
                 }
             }
@@ -224,15 +199,85 @@ namespace
             for (auto& moon : moons)
             {
                 moon.x += moon.dx;
-                moon.y += moon.dy;
-                moon.z += moon.dz;
             }
 
-            cycleCount++;
+            cycleCountX++;
             if (moons == moonsCopy) { break; }
         }
 
-        std::cout << cycleCount << std::endl;
+        moons = moonsCopy;
+        uint64_t cycleCountY{};
+        while (true)
+        {
+            // Update velocity
+            for (auto iMoon = 0UL; iMoon < moons.size(); ++iMoon)
+            {
+                for (auto otherMoon = 0UL; otherMoon < moons.size(); ++otherMoon)
+                {
+                    if (iMoon == otherMoon) { continue; }
+
+                    if (moons[iMoon].y != moons[otherMoon].y)
+                    {
+                        if (moons[iMoon].y >= moons[otherMoon].y)
+                        {
+                            moons[iMoon].dy--;
+                        }
+                        else
+                        {
+                            moons[iMoon].dy++;
+                        }
+                    }
+                }
+            }
+
+            // Update position
+            for (auto& moon : moons)
+            {
+                moon.y += moon.dy;
+            }
+
+            cycleCountY++;
+            if (moons == moonsCopy) { break; }
+        }
+
+        moons = moonsCopy;
+        uint64_t cycleCountZ{};
+        while (true)
+        {
+            // Update velocity
+            for (auto iMoon = 0UL; iMoon < moons.size(); ++iMoon)
+            {
+                for (auto otherMoon = 0UL; otherMoon < moons.size(); ++otherMoon)
+                {
+                    if (iMoon == otherMoon) { continue; }
+
+                    if (moons[iMoon].z != moons[otherMoon].z)
+                    {
+                        if (moons[iMoon].z >= moons[otherMoon].z)
+                        {
+                            moons[iMoon].dz--;
+                        }
+                        else
+                        {
+                            moons[iMoon].dz++;
+                        }
+                    }
+                }
+            }
+
+            // Update position
+            for (auto& moon : moons)
+            {
+                moon.z += moon.dz;
+            }
+
+            cycleCountZ++;
+            if (moons == moonsCopy) { break; }
+        }
+
+        const auto result = LeastCommonMultiple(LeastCommonMultiple(cycleCountX, cycleCountY), cycleCountZ);
+        std::cerr << "X: " << cycleCountX << " Y: " << cycleCountY << " Z: " << cycleCountZ << std::endl;
+        std::cout << result << std::endl;;
     }
 }
 
