@@ -95,12 +95,11 @@ namespace
 
         for (auto iterations = 0UL; iterations < iterationCount; ++iterations)
         {
-            for (auto i = 0UL; i < digits.size(); ++i)
+            // Each entry is itself plus the sum of the remaining digits.  We can turn N^2 into N by simply
+            // doing the addition in reverse.
+            for (int32_t i = (int32_t)digits.size() - 2; i >= 0; --i)
             {
-                // Any given digit is a running total of all digits that follow it.  For some reason std::accumulate
-                // is 6-10x faster than a simple for loop with the same number of operations.
-                int32_t runningTotal = std::accumulate(digits.begin() + i, digits.end(), 0);
-                digits[i] = runningTotal % 10;
+                digits[i] = (digits[i] + digits[i + 1]) % 10;
             }
         }
 
