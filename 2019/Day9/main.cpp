@@ -82,7 +82,7 @@ namespace
             }
             case 3: // input param
             {
-                const auto destination = firstParamRelative ? state.relativeBasePointer : program[instructionCounter + 1];
+                const auto destination = firstParamRelative ? state.relativeBasePointer + program[instructionCounter + 1] : program[instructionCounter + 1];
                 program[destination] = inputs[inputCount++];
                 instructionCounter += 2;
                 break;
