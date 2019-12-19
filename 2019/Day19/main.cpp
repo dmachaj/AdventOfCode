@@ -197,9 +197,10 @@ namespace
         constexpr auto c_height = 50;
         std::array<bool, c_width * c_height> results{};
 
-        for (auto x = 0UL; x < c_width; ++x)
+        for (auto y = 0UL; y < c_height; ++y)
         {
-            for (auto y = 0UL; y < c_height; ++y)
+            bool anyXMatches{false};
+            for (auto x = 0UL; x < c_width; ++x)
             {
                 ProgramState state {program, 0, 0};
                 std::vector<uint64_t> programInput{x, y};
@@ -207,6 +208,11 @@ namespace
                 if ((result.size() > 0) && (result[0] != 0))
                 {
                     results[y * c_width + x] = true;
+                    anyXMatches = true;
+                }
+                else if ((results.size() > 0) && (result[0] == 0) && anyXMatches)
+                {
+                    break;
                 }
             }
         }
@@ -219,15 +225,104 @@ namespace
         std::cout << affectedSquares << std::endl;
     }
 
+    // uint32_t c_width = (uint32_t)sqrt(UINT32_MAX);
+    // uint32_t c_height = (uint32_t)sqrt(UINT32_MAX);
+    uint32_t c_width = 1000;
+    uint32_t c_height = 1000;
+    constexpr uint32_t necessaryWidth{ 25 };
+    constexpr uint32_t necessaryHeight{ 20 };
+    bool DoesSquareFitWithin(const std::vector<bool>& squares, const uint32_t x, const uint32_t y)
+    {
+        for (auto ix = x; ix < (x + necessaryWidth); ++ix)
+        {
+            for (auto iy = y; iy < (y + necessaryHeight); ++iy)
+            {
+                if (!squares[iy * c_width + ix])
+                {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+
     void Part2()
     {
-        std::cout << 0 << std::endl;
+        std::vector<int64_t> program{};
+        program.reserve(c_memorySize);
+
+        std::string input;
+        while (std::getline(std::cin, input, ','))
+        {
+            program.emplace_back(std::atoll(input.c_str()));
+        }
+
+        for (auto i = program.size(); i < c_memorySize; ++i)
+        {
+            program.emplace_back(0);
+        }
+
+        std::vector<bool> results(c_width * c_height, false);
+
+        unsigned long firstX = 0;
+        unsigned long firstY = 0;
+        for (auto y = std::min(firstY, 0UL); y < c_height; ++y)
+        {
+            bool anyXMatches{false};
+            for (auto x = std::min(firstX, 0UL); x < c_width; ++x)
+            {
+                ProgramState state {program, 0, 0};
+                std::vector<uint64_t> programInput{x, y};
+                const auto result = ExecuteProgram(state, programInput);
+                if ((result.size() > 0) && (result[0] != 0))
+                {
+                    results[y * c_width + x] = true;
+                    anyXMatches = true;
+                    firstX = x;
+                }
+                else if ((results.size() > 0) && (result[0] == 0) && anyXMatches)
+                {
+                    break;
+                }
+            }
+        }
+        std::cerr << "Computed " << (c_width * c_height) << " squares of beam" << std::endl;
+        uint32_t affectedSquares{};
+        for (const auto square : results)
+        {
+            if (square) { affectedSquares++; }
+        }
+        std::cerr << affectedSquares << " squares affected by tractor beam" << std::endl;
+
+        for (auto y = 0UL; y < c_height; ++y)
+        {
+            for (auto x = 0UL; x < c_width; ++x)
+            {
+                bool isAffected = results[y * c_width + x];
+                if (isAffected)
+                {
+                    if (DoesSquareFitWithin(results, x, y))
+                    {
+                        std::cerr << "Result is X=" << x << ", Y=" << y << std::endl;
+                    }
+                    else
+                    {
+                        const auto finalResult = (x * 10000) + y;
+                        std::cout << finalResult << std::endl;
+                        return;
+                    }
+                    
+                }
+            }
+        }
+
+        std::cerr << "Did not find a match :(" << std::endl;
     }
 }
 
 int main()
 {
-    Part1();
-    // Part2();
+    // Part1();
+    Part2();
     return 0;
 }
