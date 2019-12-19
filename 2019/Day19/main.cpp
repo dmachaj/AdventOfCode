@@ -4,6 +4,7 @@
 #include <iostream>
 #include <string>
 #include <vector>
+#include <unordered_map>
 
 namespace
 {
@@ -217,6 +218,15 @@ namespace
             }
         }
 
+        // for (auto y = 0UL; y < c_height; ++y)
+        // {
+        //     for (auto x = 0UL; x < c_width; ++x)
+        //     {
+        //         std::cerr << (results[y * c_width + x] ? "#" : ".");
+        //     }
+        //     std::cerr << std::endl;
+        // }
+
         uint32_t affectedSquares{};
         for (const auto square : results)
         {
@@ -225,20 +235,36 @@ namespace
         std::cout << affectedSquares << std::endl;
     }
 
-    // uint32_t c_width = (uint32_t)sqrt(UINT32_MAX);
-    // uint32_t c_height = (uint32_t)sqrt(UINT32_MAX);
-    uint32_t c_width = 1000;
-    uint32_t c_height = 1000;
-    constexpr uint32_t necessaryWidth{ 25 };
-    constexpr uint32_t necessaryHeight{ 20 };
-    bool DoesSquareFitWithin(const std::vector<bool>& squares, const uint32_t x, const uint32_t y)
+    static std::unordered_map<uint32_t, bool> resultCache{};
+    bool IsSquareAffected(const std::vector<int64_t>& program, const uint32_t x, const uint32_t y)
     {
-        for (auto ix = x; ix < (x + necessaryWidth); ++ix)
+        const auto cache = resultCache.find((x * 10000) + y);
+        if (cache != resultCache.end())
         {
-            for (auto iy = y; iy < (y + necessaryHeight); ++iy)
+            return cache->second;
+        }
+
+        ProgramState state {program, 0, 0};
+        std::vector<uint64_t> programInput{x, y};
+        const auto intCodeResult = ExecuteProgram(state, programInput);
+        const bool result = ((intCodeResult.size() != 0) && (intCodeResult[0] != 0));
+        resultCache.emplace((x * 10000) + y, result);
+        return result;
+    }
+
+    uint32_t c_width = 10000;
+    uint32_t c_height = 10000;
+    constexpr uint32_t necessaryWidth{ 100 };
+    constexpr uint32_t necessaryHeight{ 100 };
+    bool DoesSquareFitWithin(const std::vector<int64_t>& program, const uint32_t x, const uint32_t y)
+    {
+        for (auto iy = y; iy < (y + necessaryHeight); ++iy)
+        {
+            for (auto ix = x; ix < (x + necessaryWidth); ++ix)
             {
-                if (!squares[iy * c_width + ix])
+                if (!IsSquareAffected(program, ix, iy))
                 {
+                    // std::cerr << "Square starting at (" << x << "," << y << ") failed at " << ((iy - y != 0) ? necessaryWidth : (ix - x)) << " wide and " << (iy - y) << " tall." << std::endl;
                     return false;
                 }
             }
@@ -262,61 +288,34 @@ namespace
             program.emplace_back(0);
         }
 
-        std::vector<bool> results(c_width * c_height, false);
-
-        unsigned long firstX = 0;
-        unsigned long firstY = 0;
-        for (auto y = std::min(firstY, 0UL); y < c_height; ++y)
-        {
-            bool anyXMatches{false};
-            for (auto x = std::min(firstX, 0UL); x < c_width; ++x)
-            {
-                ProgramState state {program, 0, 0};
-                std::vector<uint64_t> programInput{x, y};
-                const auto result = ExecuteProgram(state, programInput);
-                if ((result.size() > 0) && (result[0] != 0))
-                {
-                    results[y * c_width + x] = true;
-                    anyXMatches = true;
-                    firstX = x;
-                }
-                else if ((results.size() > 0) && (result[0] == 0) && anyXMatches)
-                {
-                    break;
-                }
-            }
-        }
-        std::cerr << "Computed " << (c_width * c_height) << " squares of beam" << std::endl;
-        uint32_t affectedSquares{};
-        for (const auto square : results)
-        {
-            if (square) { affectedSquares++; }
-        }
-        std::cerr << affectedSquares << " squares affected by tractor beam" << std::endl;
-
+        uint32_t minX = 0UL;
         for (auto y = 0UL; y < c_height; ++y)
         {
-            for (auto x = 0UL; x < c_width; ++x)
+            for (auto x = minX; x < c_width; ++x)
             {
-                bool isAffected = results[y * c_width + x];
-                if (isAffected)
+                if (IsSquareAffected(program, x, y))
                 {
-                    if (DoesSquareFitWithin(results, x, y))
+                    if ((x - 1 > 0) && !IsSquareAffected(program, x - 1, y))
                     {
-                        std::cerr << "Result is X=" << x << ", Y=" << y << std::endl;
+                        minX = x;
                     }
-                    else
+
+                    if (DoesSquareFitWithin(program, x, y))
                     {
                         const auto finalResult = (x * 10000) + y;
                         std::cout << finalResult << std::endl;
                         return;
                     }
-                    
+                    else if (!IsSquareAffected(program, x + 1, y))
+                    {
+                        break;
+                    }
                 }
             }
         }
 
         std::cerr << "Did not find a match :(" << std::endl;
+        std::cout << 0 << std::endl;
     }
 }
 
