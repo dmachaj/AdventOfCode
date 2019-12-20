@@ -83,7 +83,9 @@ namespace
             case 3: // input param
             {
                 const auto destination = firstParamRelative ? state.relativeBasePointer + program[instructionCounter + 1] : program[instructionCounter + 1];
-                program[destination] = inputs[inputCount++];
+                // program[destination] = inputs[inputCount++];
+                program[destination] = 0; // HACK - don't move paddle.
+                inputCount;
                 instructionCounter += 2;
                 break;
             }
@@ -176,19 +178,87 @@ namespace
         }
         return result;
     }
+    
+    struct Tile
+    {
+        uint32_t x{};
+        uint32_t y{};
+        uint8_t type{};
+        char printCode{};
+    };
+
+    struct BoardInfo
+    {
+        std::vector<Tile> allTiles{};
+        uint32_t width{};
+        uint32_t height{};
+        uint32_t score{};
+    };
+
+    BoardInfo IntcodeOutputToBoardInfo(const std::vector<int64_t>& input)
+    {
+        BoardInfo result{};
+
+        for (auto i = 0UL; i < input.size(); i += 3)
+        {
+            if ((input[i] == -1) && (input[i+1] == 0))
+            {
+                result.score = (uint32_t)input[i+2];
+                continue;
+            }
+
+            Tile thisTile{ (uint32_t)input[i], (uint32_t)input[i+1], (uint8_t)input[i+2] };
+            switch (thisTile.type)
+            {
+                case 0: // empty
+                    thisTile.printCode =  ' ';
+                    break;
+                case 1: // wall
+                    thisTile.printCode =  '#';
+                    break;
+                case 2: // block
+                    thisTile.printCode =  'B';
+                    break;
+                case 3: // paddle
+                    thisTile.printCode =  '=';
+                    break;
+                case 4: // ball
+                    thisTile.printCode =  'o';
+                    break;
+                default:
+                    thisTile.printCode =  '?';
+                    // throw std::exception("Unknown tile type");
+                    break;
+            }
+            result.allTiles.emplace_back(std::move(thisTile));
+        }
+
+        const auto maxX = std::max_element(result.allTiles.begin(), result.allTiles.end(), 
+            [](const Tile& first, const Tile& second)
+            {
+                return first.x < second.x;
+            });
+        const auto maxY = std::max_element(result.allTiles.begin(), result.allTiles.end(), 
+            [](const Tile& first, const Tile& second)
+            {
+                return first.y < second.y;
+            });
+        
+        // std::cerr << "NumTiles=" << (allTiles.size() / 3) << " MaxX=" << maxX->x << " MaxY=" << maxY->y << " NumBlocks=" << numBlocks << std::endl;
+        result.width = maxX->x + 1;
+        result.height = maxY->y + 1;
+
+        return result;
+    }
 
     constexpr size_t c_memorySize{10000};
-    void Part1()
+    void Part1(std::istream& inStream)
     {
         std::vector<int64_t> program{};
         program.reserve(c_memorySize);
 
-        std::ifstream inputFileStream;
-        inputFileStream.open("C:\\code\\AdventOfCode\\2019\\Day13\\Part1\\unique.in");
-
         std::string input;
-        // while (std::getline(std::cin, input, ','))
-        while (std::getline(inputFileStream, input, ','))
+        while (std::getline(inStream, input, ','))
         {
             program.emplace_back(std::atoll(input.c_str()));
         }
@@ -202,69 +272,25 @@ namespace
         std::vector<uint64_t> programInput{};
         const auto result = ExecuteProgram(state, programInput);
 
-        struct Tile
-        {
-            uint32_t x{};
-            uint32_t y{};
-            uint8_t type{};
-        };
-        std::vector<Tile> allTiles{};
+        const BoardInfo board = IntcodeOutputToBoardInfo(result);
 
         uint32_t numBlocks{};
-        for (auto i = 0UL; i < result.size(); i += 3)
+        for (const auto& tile : board.allTiles)
         {
-            Tile thisTile{ (uint32_t)result[i], (uint32_t)result[i+1], (uint8_t)result[i+2] };
-            if (thisTile.type == 2)
+            if (tile.type == 2)
             {
                 ++numBlocks;
             }
-            std::cerr << "(" << thisTile.x << ", " << thisTile.y << ") = " << (int)thisTile.type << std::endl;
-            allTiles.emplace_back(std::move(thisTile));
         }
-
-        const auto maxX = std::max_element(allTiles.begin(), allTiles.end(), 
-            [](const Tile& first, const Tile& second)
-            {
-                return first.x < second.x;
-            });
-        const auto maxY = std::max_element(allTiles.begin(), allTiles.end(), 
-            [](const Tile& first, const Tile& second)
-            {
-                return first.y < second.y;
-            });
         
-        std::cerr << "NumTiles=" << (allTiles.size() / 3) << " MaxX=" << maxX->x << " MaxY=" << maxY->y << " NumBlocks=" << numBlocks << std::endl;
-        const auto width = maxX->x + 1;
-        const auto height = maxY->y + 1;
-        for (auto y = 0UL; y < height; ++y)
+        for (auto y = 0UL; y < board.height; ++y)
         {
-            for (auto x = 0UL; x < width; ++x)
+            for (auto x = 0UL; x < board.width; ++x)
             {
-                const auto tile = std::find_if(allTiles.begin(), allTiles.end(), [x,y](const Tile& tile) { return tile.x == x && tile.y ==y; });
-                if (tile != allTiles.end())
+                const auto tile = std::find_if(board.allTiles.begin(), board.allTiles.end(), [x,y](const Tile& tile) { return tile.x == x && tile.y ==y; });
+                if (tile != board.allTiles.end())
                 {
-                    switch (tile->type)
-                    {
-                        case 0: // empty
-                            std::cerr << " ";
-                            break;
-                        case 1: // wall
-                            std::cerr << "#";
-                            break;
-                        case 2: // block
-                            std::cerr << "B";
-                            break;
-                        case 3: // paddle
-                            std::cerr << "=";
-                            break;
-                        case 4: // ball
-                            std::cerr << "o";
-                            break;
-                        default:
-                            std::cerr << "?";
-                            break;
-                            // throw std::exception("Unknown tile type");
-                    }
+                    std::cerr << tile->printCode;
                 }
             }
             std::cerr << std::endl;
@@ -273,15 +299,66 @@ namespace
         std::cout << numBlocks << std::endl;
     }
 
-    void Part2()
+    void Part2(std::istream& inStream)
     {
-        std::cout << 0 << std::endl;
+        std::vector<int64_t> program{};
+        program.reserve(c_memorySize);
+
+        std::string input;
+        while (std::getline(inStream, input, ','))
+        {
+            program.emplace_back(std::atoll(input.c_str()));
+        }
+
+        for (auto i = program.size(); i < c_memorySize; ++i)
+        {
+            program.emplace_back(0);
+        }
+        program[0] = 2; // insert quarters
+        
+        ProgramState state {program, 0, 0};
+        std::vector<uint64_t> programInput{};
+
+        while (true)
+        {
+            const auto result = ExecuteProgram(state, programInput);
+            const BoardInfo board = IntcodeOutputToBoardInfo(result);
+
+            for (auto y = 0UL; y < board.height; ++y)
+            {
+                for (auto x = 0UL; x < board.width; ++x)
+                {
+                    const auto tile = std::find_if(board.allTiles.begin(), board.allTiles.end(), [x,y](const Tile& tile) { return tile.x == x && tile.y ==y; });
+                    if (tile != board.allTiles.end())
+                    {
+                        std::cerr << tile->printCode;
+                    }
+                }
+                std::cerr << std::endl;
+            }
+
+            std::cerr << "Score: " << board.score << std::endl;
+        }
+
     }
 }
 
 int main()
 {
-    Part1();
-    // Part2();
+    bool part1 = false;
+    if (part1)
+    {
+        // std::ifstream inputFileStream;
+        // inputFileStream.open("C:\\code\\AdventOfCode\\2019\\Day13\\Part1\\unique.in");
+        Part1(std::cin);
+    }
+    else
+    {
+        std::ifstream inputFileStream;
+        inputFileStream.open("C:\\code\\AdventOfCode\\2019\\Day13\\Part2\\unique.in");
+        // Part2(std::cin);
+        Part2(inputFileStream);
+    }
+    
     return 0;
 }
