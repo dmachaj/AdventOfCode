@@ -2,6 +2,9 @@ param([string]$SubDir)
 
 $exePath = Join-Path (Get-Location) "main.exe"
 
+# Set an environment variable to the subdirectory name so that the C++ code can decide at runtime whether to run part1 or part2
+$env:PART_TO_RUN = $SubDir;
+
 $sampleInputs = Get-ChildItem (".\" + $subdir + "\*.in")
 foreach ($input in $sampleInputs)
 {

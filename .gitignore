@@ -37,3 +37,6 @@
 
 # VSCode stuff
 .vscode/
+
+# VS 2019 stuff
+.vs/
