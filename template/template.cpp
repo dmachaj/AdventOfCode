@@ -4,7 +4,7 @@
 #include <iostream>
 #include <string>
 #include <vector>
-#include "../../Includes/HelpfulInfrastructure.h"
+#include "HelpfulInfrastructure.h"
 
 #pragma warning (disable: 4267) // size_t <-> uint
 
@@ -12,6 +12,11 @@ namespace
 {
     void Part1()
     {
+        std::string input;
+        while (std::getline(std::cin, input))
+        {
+
+        }
         std::cout << 0 << std::endl;
     }
 

@@ -4,7 +4,7 @@
 #include <iostream>
 #include <string>
 #include <vector>
-#include "../../Includes/HelpfulInfrastructure.h"
+#include "HelpfulInfrastructure.h"
 
 #pragma warning (disable: 4267) // size_t <-> uint
 
