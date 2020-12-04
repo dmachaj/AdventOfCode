@@ -6,6 +6,8 @@
 #include <vector>
 #include "HelpfulInfrastructure.h"
 
+using namespace std::literals;
+
 #pragma warning (disable: 4267) // size_t <-> uint
 
 namespace
