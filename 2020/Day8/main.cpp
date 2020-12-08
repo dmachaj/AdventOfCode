@@ -65,7 +65,7 @@ namespace
         uint32_t programCounter{};
         int32_t accumulator{};
 
-        while(find(instructionsReached.begin(), instructionsReached.end(), programCounter) == instructionsReached.end())
+        while(instructionsReached.find(programCounter) == instructionsReached.end())
         {
             instructionsReached.emplace(programCounter);
             
@@ -127,7 +127,7 @@ namespace
             int32_t accumulator{};
             bool halted{false};
 
-            while(find(instructionsReached.begin(), instructionsReached.end(), programCounter) == instructionsReached.end())
+            while(instructionsReached.find(programCounter) == instructionsReached.end())
             {
                 instructionsReached.emplace(programCounter);
                 
