@@ -3,6 +3,7 @@
 #include <cmath>
 #include <iostream>
 #include <set>
+#include <sstream>
 #include <string>
 #include <vector>
 #include "HelpfulInfrastructure.h"
