@@ -2,6 +2,7 @@
 #include <array>
 #include <cmath>
 #include <iostream>
+#include <numeric>
 #include <set>
 #include <sstream>
 #include <string>
