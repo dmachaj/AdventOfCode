@@ -17,3 +17,26 @@ inline bool RunPart1()
     }
     return (partToRun != "Part2"); // When in doubt, run part 1
 }
+
+inline uint64_t LowestCommonDenominator(uint64_t first, uint64_t second)
+{
+    while (true)
+    {
+        if (first == 0) { return second; }
+        second %= first;
+        if (second == 0) { return first; }
+        first %= second;
+    }
+}
+
+inline uint64_t LeastCommonMultiple(uint64_t first, uint64_t second)
+{
+    return (first * second) / LowestCommonDenominator(first, second);
+}
+
+inline void PrintFloatWithPrecision(double result, int precision)
+{
+    std::cout.setf(std::ios::fixed, std:: ios::floatfield);
+    std::cout.precision(precision);
+    std::cout << result << std::endl;
+}

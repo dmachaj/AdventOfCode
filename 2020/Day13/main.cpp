@@ -73,13 +73,36 @@ namespace
             }
         }
 
-        uint64_t counter{busOffsets[0].first};
-        // uint64_t counter{100000000000000};
-        // while (counter % busOffsets[0].first != 0)
-        // {
-        //     counter++;
-        // }
+        uint64_t firstTwoSolution1{};
+        {
+            uint64_t counter{busOffsets[0].first};
+            while(true)
+            {
+                if (((counter + busOffsets[1].second) % busOffsets[1].first) == 0)
+                {
+                    firstTwoSolution1 = counter;
+                    break;
+                }
+                counter += busOffsets[0].first;
+            }
+        }
 
+        uint64_t firstTwoSolution2{};
+        {
+            uint64_t counter{firstTwoSolution1 + busOffsets[0].first};
+            while(true)
+            {
+                if (((counter + busOffsets[1].second) % busOffsets[1].first) == 0)
+                {
+                    firstTwoSolution2 = counter;
+                    break;
+                }
+                counter += busOffsets[0].first;
+            }
+        }
+        
+        uint64_t firstTwoSolutionInterval = firstTwoSolution2 - firstTwoSolution1;
+        uint64_t counter{firstTwoSolution1};
         while(true)
         {
             bool solved{true};
@@ -96,7 +119,7 @@ namespace
             {
                 break;
             }
-            counter += busOffsets[0].first;
+            counter += firstTwoSolutionInterval;
         }
 
         std::cout << counter << std::endl;
