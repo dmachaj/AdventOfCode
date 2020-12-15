@@ -4,6 +4,7 @@
 #include <iostream>
 #include <iterator>
 #include <map>
+#include <unordered_map>
 #include <numeric>
 #include <set>
 #include <sstream>
@@ -57,7 +58,7 @@ namespace
         }
 
         // key = number, value = last appearance
-        std::map<uint64_t, uint64_t> allMoves{};
+        std::unordered_map<uint64_t, uint64_t> allMoves{};
         for (auto i = 0; i < inputNums.size() - 1; ++i)
         {
             allMoves[inputNums[i]] = i;
