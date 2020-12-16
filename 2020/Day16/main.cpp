@@ -20,12 +20,46 @@ using namespace std::literals;
 
 namespace
 {
-    pair<uint32_t, uint32_t> ParseConstraint(const std::string& input)
+    struct TicketConstraint
     {
-        const auto first = std::atoi(input.substr(0, input.find("-")).c_str());
-        const auto second = std::atoi(input.substr(input.find("-") + 1).c_str());
-        return make_pair(first, second);
-    }
+        TicketConstraint() = default;
+        TicketConstraint(const std::string& constraint)
+        {
+            name = constraint.substr(0, constraint.find(":"));
+
+            const auto firstNum = constraint.find(":") + 2;
+            const auto or = constraint.find(" or ");
+
+            const auto first = constraint.substr(firstNum, or - firstNum);
+            const auto second = constraint.substr(or + 4);
+
+            firstValid = ParseConstraint(first);
+            secondValid = ParseConstraint(second);
+        }
+
+        bool operator==(const TicketConstraint& other)
+        {
+            return (name == other.name) && (firstValid == other.firstValid) && (secondValid == other.secondValid);
+        }
+
+        bool IsValid(uint32_t value) const
+        {
+            return (((value >= firstValid.first) && (value <= firstValid.second) )||
+                    ((value >= secondValid.first) && (value <= secondValid.second)));
+        }
+
+        std::string name;
+        pair<uint32_t, uint32_t> firstValid;
+        pair<uint32_t, uint32_t> secondValid;
+
+    private:
+        pair<uint32_t, uint32_t> ParseConstraint(const std::string& input)
+        {
+            const auto first = std::atoi(input.substr(0, input.find("-")).c_str());
+            const auto second = std::atoi(input.substr(input.find("-") + 1).c_str());
+            return make_pair(first, second);
+        }
+    };
 
     vector<uint32_t> ParseTicket(const std::string& input)
     {
@@ -66,15 +100,10 @@ namespace
             otherTickets.emplace_back(move(input));
         }
 
-        vector<pair<uint32_t, uint32_t>> parsedConstraints;
+        std::vector<TicketConstraint> parsedConstraints;
         for (const auto& constraint : constraints)
         {
-            const auto firstNum = constraint.find(":") + 2;
-            const auto or = constraint.find(" or ");
-            const auto first = constraint.substr(firstNum, or - firstNum);
-            const auto second = constraint.substr(or + 4);
-            parsedConstraints.emplace_back(ParseConstraint(first));
-            parsedConstraints.emplace_back(ParseConstraint(second));
+            parsedConstraints.emplace_back(TicketConstraint(constraint));
         }
 
         uint32_t runningTotal{};
@@ -83,15 +112,10 @@ namespace
             const auto values = ParseTicket(ticket);
             for (auto&& value : values)
             {
-                bool valid{false};
-                for (auto&& constraint: parsedConstraints)
+                bool valid = std::any_of(parsedConstraints.begin(), parsedConstraints.end(), [value](const TicketConstraint& constraint)
                 {
-                    if ((value >= constraint.first) && (value <= constraint.second))
-                    {
-                        valid = true;
-                        break;
-                    }
-                }
+                    return constraint.IsValid(value);
+                });
 
                 if (!valid)
                 {
@@ -131,66 +155,25 @@ namespace
             otherTickets.emplace_back(move(input));
         }
 
-        struct TicketConstraint
-        {
-            std::string name;
-            pair<uint32_t, uint32_t> valid1;
-            pair<uint32_t, uint32_t> valid2;
-            bool operator==(const TicketConstraint& other)
-            {
-                return (name == other.name) && (valid1 == other.valid1) && (valid2 == other.valid2);
-            }
-        };
-
         vector<TicketConstraint> parsedConstraints;
         for (const auto& constraint : constraints)
         {
-            const auto name = constraint.substr(0, constraint.find(":"));
-            const auto firstNum = constraint.find(":") + 2;
-            const auto or = constraint.find(" or ");
-            const auto first = constraint.substr(firstNum, or - firstNum);
-            const auto second = constraint.substr(or + 4);
-            const auto firstValid = ParseConstraint(first);
-            const auto secondValid = ParseConstraint(second);
-
-            TicketConstraint value =
-            {
-                name,
-                firstValid,
-                secondValid
-            };
-            parsedConstraints.emplace_back(move(value));
+            parsedConstraints.emplace_back(TicketConstraint(constraint));
         }
         const auto columnCount = parsedConstraints.size();
 
         vector<vector<uint32_t>> validTickets;
         for (auto&& ticket : otherTickets)
         {
-            bool allValid{true};
             const auto values = ParseTicket(ticket);
-            for (auto&& value : values)
+            const bool allValid = std::all_of(values.begin(), values.end(), [parsedConstraints](uint32_t value)
             {
-                bool valid{false};
-                for (auto&& constraint: parsedConstraints)
+                bool valid = std::any_of(parsedConstraints.begin(), parsedConstraints.end(), [value](const TicketConstraint& constraint)
                 {
-                    if ((value >= constraint.valid1.first) && (value <= constraint.valid1.second))
-                    {
-                        valid = true;
-                        break;
-                    }
-                    else if ((value >= constraint.valid2.first) && (value <= constraint.valid2.second))
-                    {
-                        valid = true;
-                        break;
-                    }
-                }
-
-                if (!valid)
-                {
-                    allValid = false;
-                    break;
-                }
-            }
+                    return constraint.IsValid(value);
+                });
+                return valid;
+            });
 
             if (allValid)
             {
@@ -203,12 +186,7 @@ namespace
             for (auto&& values : validTickets)
             {
                 const auto currentValue = values[column];
-                if (((currentValue >= constraint.valid1.first) && (currentValue <= constraint.valid1.second) )||
-                    ((currentValue >= constraint.valid2.first) && (currentValue <= constraint.valid2.second)))
-                {
-                    // valid
-                }
-                else
+                if (!constraint.IsValid(currentValue))
                 {
                     return false;
                 }
@@ -248,8 +226,6 @@ namespace
                 if (possibilities.second.size() == 1)
                 {
                     orderedConstraints[possibilities.first] = possibilities.second[0];
-                    possibilities.second.clear();
-
                     for (auto& otherPossibilities : constraintPossibilities)
                     {
                         const auto iter = std::find(otherPossibilities.second.begin(), otherPossibilities.second.end(), orderedConstraints[possibilities.first]);
