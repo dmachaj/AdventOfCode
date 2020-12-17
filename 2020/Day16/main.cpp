@@ -130,29 +130,32 @@ namespace
     // Avert ye eyes, all who go here.  This is an UGLY one.
     void Part2()
     {
-        std::vector<std::string> constraints;
         std::string input;
+
+        std::vector<std::string> constraints;
         while (std::getline(std::cin, input))
         {
             if (input.empty()) break;
             constraints.emplace_back(move(input));
         }
 
-        std::getline(std::cin, input);
-        if (input != "your ticket:") throw 0;
         std::string myTicket;
-        std::getline(std::cin, myTicket);
-
-        std::getline(std::cin, input);
-        if (!input.empty()) throw 0;
-
-        std::getline(std::cin, input);
-        if (input != "nearby tickets:") throw 0;
         std::vector<std::string> otherTickets;
-        while (std::getline(std::cin, input))
         {
-            if (input.empty()) break;
-            otherTickets.emplace_back(move(input));
+            std::getline(std::cin, input);
+            if (input != "your ticket:") throw 0;
+            std::getline(std::cin, myTicket);
+
+            std::getline(std::cin, input);
+            if (!input.empty()) throw 0;
+
+            std::getline(std::cin, input);
+            if (input != "nearby tickets:") throw 0;
+            while (std::getline(std::cin, input))
+            {
+                if (input.empty()) break;
+                otherTickets.emplace_back(move(input));
+            }
         }
 
         vector<TicketConstraint> parsedConstraints;
@@ -181,25 +184,17 @@ namespace
             }
         }
 
-        const auto CanMatch = [](const TicketConstraint& constraint, const vector<vector<uint32_t>>& validTickets, uint32_t column) -> bool
-        {
-            for (auto&& values : validTickets)
-            {
-                const auto currentValue = values[column];
-                if (!constraint.IsValid(currentValue))
-                {
-                    return false;
-                }
-            }
-            return true;
-        };
-
         map<uint32_t, vector<TicketConstraint>> constraintPossibilities;
         for (auto i = 0UL; i < columnCount; ++i)
         {
             for (auto&& constraint : parsedConstraints)
             {
-                if (CanMatch(constraint, validTickets, i))
+                const bool allMatches = std::all_of(validTickets.begin(), validTickets.end(), [i, constraint](const auto& ticket)
+                {
+                    return constraint.IsValid(ticket[i]);
+                });
+
+                if (allMatches)
                 {
                     constraintPossibilities[i].push_back(constraint);
                 }
@@ -208,14 +203,10 @@ namespace
 
         const auto Solved = [](const map<uint32_t, vector<TicketConstraint>>& possibilities) -> bool
         {
-            for (auto&& entry : possibilities)
+            return std::all_of(possibilities.begin(), possibilities.end(), [](const auto& entry)
             {
-                if (!entry.second.empty())
-                {
-                    return false;
-                }
-            }
-            return true;
+                return entry.second.empty();
+            });
         };
 
         vector<TicketConstraint> orderedConstraints(columnCount);
@@ -254,10 +245,10 @@ namespace
             return;
         }
 
-        uint64_t result = results[0];
-        for (auto i = 1UL; i < results.size(); ++i)
+        uint64_t result{1};
+        for (auto&& value : results)
         {
-            result *= results[i];
+            result *= value;
         }
 
         std::cout << result << std::endl;
