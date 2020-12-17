@@ -127,7 +127,6 @@ namespace
         std::cout << runningTotal << std::endl;
     }
 
-    // Avert ye eyes, all who go here.  This is an UGLY one.
     void Part2()
     {
         std::string input;
