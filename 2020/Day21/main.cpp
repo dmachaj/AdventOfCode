@@ -45,17 +45,9 @@ namespace
         return std::make_pair(ingredients, allergens);
     }
 
-    // struct LargestPossibilityListFirst
-    // {
-    //     bool operator()(const std::vector<std::vector<std::string>>& lhs, const std::vector<std::vector<std::string>>& rhs)
-    //     {
-    //         return lhs.size() > rhs.size();
-    //     }
-    // };
-
     void Part1()
     {
-        std::unordered_map<std::string, std::vector<std::vector<std::string>>/*, LargestPossibilityListFirst*/> allergenToIngredientPossibilities;
+        std::unordered_map<std::string, std::vector<std::vector<std::string>>> allergenToIngredientPossibilities;
         std::unordered_set<std::string> allAllergens;
         std::unordered_set<std::string> allIngredients;
         std::vector<std::string> everyIngredient;
@@ -86,6 +78,9 @@ namespace
             for (const auto& list : allergenToIngredientPossibilities)
             {
                 const auto& allergen = list.first;
+                std::pair<std::string, std::string> matchPair; // ingredient, allergen
+                bool multiMatch{false};
+
                 for (const auto& ingredient: allIngredients)
                 {
                     if (ingredientAllergenMap.find(ingredient) != ingredientAllergenMap.end()) continue; // ingredient already matched
@@ -95,11 +90,22 @@ namespace
                         return std::find(ingredientList.begin(), ingredientList.end(), ingredient) != ingredientList.end();
                     });
 
-                    if (match)
+                    if (match && !matchPair.first.empty())
                     {
-                        ingredientAllergenMap[ingredient] = allergen;
+                        std::cerr << "Multiple matches found for " << allergen << " skippping..." << endl;
+                        matchPair = {};
+                        multiMatch = true;
                         break;
                     }
+                    if (match)
+                    {
+                        matchPair = std::make_pair(ingredient, allergen);
+                    }
+                }
+
+                if (!matchPair.first.empty() && !multiMatch)
+                {
+                    ingredientAllergenMap[matchPair.first] = matchPair.second;
                 }
             }
         } while (ingredientAllergenMap.size() != allAllergens.size());
@@ -118,7 +124,7 @@ namespace
 
     void Part2()
     {
-        std::unordered_map<std::string, std::vector<std::vector<std::string>>/*, LargestPossibilityListFirst*/> allergenToIngredientPossibilities;
+        std::unordered_map<std::string, std::vector<std::vector<std::string>>> allergenToIngredientPossibilities;
         std::unordered_set<std::string> allAllergens;
         std::unordered_set<std::string> allIngredients;
         std::vector<std::string> everyIngredient;
@@ -149,6 +155,9 @@ namespace
             for (const auto& list : allergenToIngredientPossibilities)
             {
                 const auto& allergen = list.first;
+                std::pair<std::string, std::string> matchPair; // ingredient, allergen
+                bool multiMatch{false};
+
                 for (const auto& ingredient: allIngredients)
                 {
                     if (ingredientAllergenMap.find(ingredient) != ingredientAllergenMap.end()) continue; // ingredient already matched
@@ -158,11 +167,22 @@ namespace
                         return std::find(ingredientList.begin(), ingredientList.end(), ingredient) != ingredientList.end();
                     });
 
-                    if (match)
+                    if (match && !matchPair.first.empty())
                     {
-                        ingredientAllergenMap[ingredient] = allergen;
+                        std::cerr << "Multiple matches found for " << allergen << " skippping..." << endl;
+                        matchPair = {};
+                        multiMatch = true;
                         break;
                     }
+                    if (match)
+                    {
+                        matchPair = std::make_pair(ingredient, allergen);
+                    }
+                }
+
+                if (!matchPair.first.empty() && !multiMatch)
+                {
+                    ingredientAllergenMap[matchPair.first] = matchPair.second;
                 }
             }
         } while (ingredientAllergenMap.size() != allAllergens.size());
