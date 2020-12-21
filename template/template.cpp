@@ -17,6 +17,7 @@ using namespace std::literals;
 
 #pragma warning (disable: 4267) // size_t <-> uint
 #pragma warning (disable: 4189) // unused variable
+#pragma warning (disable: 4100) // unused param
 
 namespace
 {
