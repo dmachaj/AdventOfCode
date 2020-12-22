@@ -30,7 +30,7 @@ namespace
         };
 
         Rule() = default;
-        
+
         Rule(uint32_t id, Type type, std::vector<uint32_t> leftRules, std::vector<uint32_t> rightRules, char value):
             id(id), type(type), leftRules(leftRules), rightRules(rightRules), value(value)
         {}
@@ -78,6 +78,12 @@ namespace
         const std::string& currentLine, const std::unordered_map<uint32_t, Rule>& allRules, 
         const Rule& currentRule, uint32_t currentOffset)
     {
+        // Ran past the end of the buffer
+        if (currentOffset >= currentLine.size())
+        {
+            return {};
+        }
+
         // Literals nibble exactly their character, or return an empty set
         if (currentRule.type == Rule::Type::Literal)
         {
@@ -110,22 +116,26 @@ namespace
             }
         }
 
-        std::set<uint32_t> rightResults{currentOffset};
-        for (auto rule : currentRule.rightRules)
+        std::set<uint32_t> rightResults;
+        if (!currentRule.rightRules.empty())
         {
-            auto resultsCopy = rightResults;
-            rightResults.clear();
-
-            auto nextRule = (allRules.find(rule))->second;
-            for (auto offset : resultsCopy)
+            rightResults.emplace(currentOffset);
+            for (auto rule : currentRule.rightRules)
             {
-                const auto options = ConsumeLettersRecursive(currentLine, allRules, nextRule, offset);
-                rightResults.insert(options.begin(), options.end());
-            }
+                auto resultsCopy = rightResults;
+                rightResults.clear();
 
-            if (rightResults.empty())
-            {
-                break; // no point matching when we've already failed out
+                auto nextRule = (allRules.find(rule))->second;
+                for (auto offset : resultsCopy)
+                {
+                    const auto options = ConsumeLettersRecursive(currentLine, allRules, nextRule, offset);
+                    rightResults.insert(options.begin(), options.end());
+                }
+
+                if (rightResults.empty())
+                {
+                    break; // no point matching when we've already failed out
+                }
             }
         }
 
