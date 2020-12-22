@@ -31,8 +31,8 @@ namespace
 
         Rule() = default;
 
-        Rule(uint32_t id, Type type, std::vector<uint32_t> leftRules, std::vector<uint32_t> rightRules, char value):
-            id(id), type(type), leftRules(leftRules), rightRules(rightRules), value(value)
+        Rule(uint32_t id, Type type, std::vector<std::vector<uint32_t>> ruleOptions, char value):
+            id(id), type(type), ruleOptions(ruleOptions), value(value)
         {}
 
         Rule(const std::string& input)
@@ -46,31 +46,32 @@ namespace
                 return;
             }
 
-            bool left{true};
             type = Type::Recursive;
             std::istringstream stream(input.substr(input.find(":") + 2).c_str());
             std::string temp;
+            std::vector<uint32_t> rulesTemp;
             while (std::getline(stream, temp, ' '))
             {
                 if (temp[0] == '|')
                 {
-                    left = false;
-                }
-                else if (left)
-                {
-                    leftRules.emplace_back((uint32_t)std::atoi(temp.c_str()));
+                    ruleOptions.emplace_back(std::move(rulesTemp));
+                    rulesTemp = {};
                 }
                 else
                 {
-                    rightRules.emplace_back((uint32_t)std::atoi(temp.c_str()));
+                    rulesTemp.emplace_back((uint32_t)std::atoi(temp.c_str()));
                 }
+            }
+
+            if (!rulesTemp.empty())
+            {
+                ruleOptions.emplace_back(std::move(rulesTemp));
             }
         }
 
         uint32_t id{};
         Type type{};
-        std::vector<uint32_t> leftRules; // if recursive
-        std::vector<uint32_t> rightRules; // if recursive
+        std::vector<std::vector<uint32_t>> ruleOptions; // if recursive
         char value{}; // if literal
     };
 
@@ -97,50 +98,31 @@ namespace
             }
         }
 
-        std::set<uint32_t> leftResults{currentOffset};
-        for (auto rule : currentRule.leftRules)
+        std::set<uint32_t> results{};
+        for (auto ruleset : currentRule.ruleOptions)
         {
-            auto resultsCopy = leftResults;
-            leftResults.clear();
-
-            auto nextRule = (allRules.find(rule))->second;
-            for (auto offset : resultsCopy)
+            std::set<uint32_t> currentRuleResults{currentOffset};
+            for (auto rule : ruleset)
             {
-                const auto options = ConsumeLettersRecursive(currentLine, allRules, nextRule, offset);
-                leftResults.insert(options.begin(), options.end());
-            }
-
-            if (leftResults.empty())
-            {
-                break; // no point matching when we've already failed out
-            }
-        }
-
-        std::set<uint32_t> rightResults;
-        if (!currentRule.rightRules.empty())
-        {
-            rightResults.emplace(currentOffset);
-            for (auto rule : currentRule.rightRules)
-            {
-                auto resultsCopy = rightResults;
-                rightResults.clear();
+                auto resultsCopy = currentRuleResults;
+                currentRuleResults.clear();
 
                 auto nextRule = (allRules.find(rule))->second;
                 for (auto offset : resultsCopy)
                 {
                     const auto options = ConsumeLettersRecursive(currentLine, allRules, nextRule, offset);
-                    rightResults.insert(options.begin(), options.end());
+                    currentRuleResults.insert(options.begin(), options.end());
                 }
 
-                if (rightResults.empty())
+                if (currentRuleResults.empty())
                 {
                     break; // no point matching when we've already failed out
                 }
             }
-        }
 
-        leftResults.insert(rightResults.begin(), rightResults.end());
-        return leftResults;
+            results.insert(currentRuleResults.begin(), currentRuleResults.end());
+        }
+        return results;
     }
 
     void Part1()
@@ -199,8 +181,8 @@ namespace
         {
             allRules.emplace(rule.id, rule);
         }
-        allRules[8] = Rule(8, Rule::Type::Recursive, {42}, {42, 8}, 0);
-        allRules[11] = Rule(11, Rule::Type::Recursive, {42, 31}, {42, 11, 31}, 0);
+        allRules[8] = Rule(8, Rule::Type::Recursive, {{42}, {42, 8}}, 0);
+        allRules[11] = Rule(11, Rule::Type::Recursive, {{42, 31}, {42, 11, 31}}, 0);
 
         std::vector<std::string> inputs;
         while (std::getline(std::cin, input))
