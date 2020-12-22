@@ -250,38 +250,39 @@ namespace
 
     void RotateFinalImage(std::vector<char>& finalImage, uint32_t finalBoardWidth)
     {
-            // std::vector<std::string> inputStringsRotated;
-            // for (auto col = 0UL; col < inputStrings[0].size(); ++col)
-            // {
-            //     std::string flipped;
-            //     for (auto row = inputStrings[0].size(); row > 0; --row)
-            //     {
-            //         flipped.push_back(inputStrings[row-1][col]);
-            //     }
-            //     inputStringsRotated.push_back(std::move(flipped));
-            // }
-            // std::swap(inputStrings, inputStringsRotated);
         std::vector<char> finalImageRotated(finalImage.size());
         auto iter = finalImageRotated.begin();
         for (auto col = 0UL; col < finalBoardWidth; ++col)
         {
             for (auto row = finalBoardWidth; row > 0; --row)
             {
-                const auto index = (col * finalBoardWidth) + (row - 1);
+                const auto index = ((row - 1) * finalBoardWidth) + col;
                 *iter++ = finalImage[index];
             }
         }
         std::swap(finalImage, finalImageRotated);
     }
 
-    // void FlipFinalImageVertically(std::vector<char>& finalImage, uint32_t finalBoardWidth)
-    // {
-
-    // }
+    void FlipFinalImageVertically(std::vector<char>& finalImage, uint32_t finalBoardWidth)
+    {
+        std::vector<char> finalImageFlipped(finalImage.size());
+        auto iter = finalImage.begin();
+        for (auto row = finalBoardWidth; row > 0; --row)
+        {
+            for (auto col = 0UL; col < finalBoardWidth; ++col)
+            {
+                const auto index = ((row - 1) * finalBoardWidth) + col;
+                finalImageFlipped[index] = *iter;
+                ++iter;
+            }
+        }
+        std::swap(finalImage, finalImageFlipped);
+    }
 
     uint32_t FindSeaMonsters(std::vector<char>& finalImage, uint32_t finalBoardWidth)
     {
         constexpr uint32_t monsterWidth{20};
+        // First sea monster row
         std::unordered_set<uint32_t> monsterPattern = {18};
         // Second monster row
         monsterPattern.emplace(0 + finalBoardWidth);
@@ -335,10 +336,43 @@ namespace
         match = PatternMatch(finalImage);
         if (match != 0) return match;
 
-        // TODO - Implement flipping to find a match.  Sample fails without this.
-        // FlipFinalImageVertically(finalImage, finalBoardWidth);
-        std::cerr << "Could not find sea monsters in image" << std::endl;
+        // Flip on first axis
+        RotateFinalImage(finalImage, finalBoardWidth);
+        FlipFinalImageVertically(finalImage, finalBoardWidth);
+        match = PatternMatch(finalImage);
+        if (match != 0) return match;
+        
+        RotateFinalImage(finalImage, finalBoardWidth);
+        match = PatternMatch(finalImage);
+        if (match != 0) return match;
 
+        RotateFinalImage(finalImage, finalBoardWidth);
+        match = PatternMatch(finalImage);
+        if (match != 0) return match;
+
+        RotateFinalImage(finalImage, finalBoardWidth);
+        match = PatternMatch(finalImage);
+        if (match != 0) return match;
+
+        // Flip on second axis
+        // RotateFinalImage(finalImage, finalBoardWidth);
+        FlipFinalImageVertically(finalImage, finalBoardWidth);
+        match = PatternMatch(finalImage);
+        if (match != 0) return match;
+        
+        RotateFinalImage(finalImage, finalBoardWidth);
+        match = PatternMatch(finalImage);
+        if (match != 0) return match;
+
+        RotateFinalImage(finalImage, finalBoardWidth);
+        match = PatternMatch(finalImage);
+        if (match != 0) return match;
+
+        RotateFinalImage(finalImage, finalBoardWidth);
+        match = PatternMatch(finalImage);
+        if (match != 0) return match;
+
+        std::cerr << "Could not find sea monsters in image" << std::endl;
         throw;
     }
 
@@ -398,7 +432,6 @@ namespace
         }
         allTiles.erase(std::find_if(allTiles.begin(), allTiles.end(), [corner](const Tile& tile) { return tile.id == corner.id; }));
 
-        corner.FlipVertically(); // stress test final image rotation (also makes unique input pass but sample input fail)
         while ((sidesMap[corner.right] != 2) || (sidesMap[corner.bottom] != 2))
         {
             corner.Rotate();
