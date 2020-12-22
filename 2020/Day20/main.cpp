@@ -308,6 +308,7 @@ namespace
             {
                 if (std::all_of(monsterPattern.begin(), monsterPattern.end(), [finalImage, i](uint32_t offset)
                 {
+                    if (offset >= finalImage.size()) return false;
                     return finalImage[i + offset] == '#';
                 }))
                 {
