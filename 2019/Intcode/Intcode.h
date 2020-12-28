@@ -25,6 +25,11 @@ namespace Intcode
         std::vector<int64_t> program{};
         uint64_t instructionCounter{};
         int64_t relativeBasePointer{};
+
+        bool IsHalted() const
+        {
+            return (OpCode)program[instructionCounter] == OpCode::Terminate;
+        }
     };
 
     bool ParamIsImmediate(int64_t data, uint64_t offset)
@@ -84,6 +89,7 @@ namespace Intcode
     {
     public:
         virtual int64_t NextInput() = 0;
+        virtual bool HasNextInput() = 0;
     };
 
     // Takes a vector of integers and returns them one-by-one as input to the intcode program
@@ -99,6 +105,11 @@ namespace Intcode
         {
             if (index >= inputs.size()) { throw std::out_of_range("Overflow"); }
             return inputs[index++];
+        }
+
+        bool HasNextInput() override
+        {
+            return index < inputs.size();
         }
 
     private:
@@ -117,6 +128,11 @@ namespace Intcode
         int64_t NextInput() override
         {
             return callback();
+        }
+
+        bool HasNextInput() override
+        {
+            return true;
         }
 
     private:
@@ -205,6 +221,12 @@ namespace Intcode
             case OpCode::Input:
             {
                 const auto destination = firstParamRelative ? state.relativeBasePointer + program[instructionCounter + 1] : program[instructionCounter + 1];
+                // If there is no next input then return to the caller so that they can fill it in.  The instruction pointer is unchanged so we'll come
+                // right back to this location when ExecuteProgram is called again.
+                if (!input->HasNextInput())
+                {
+                    return;
+                }
                 program[destination] = input->NextInput();
                 instructionCounter += 2;
                 break;
