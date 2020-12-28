@@ -40,7 +40,7 @@ foreach ($input in $sampleInputs)
         {
             [string]$left = $differences[0].InputObject
             [string]$right = $differences[1].InputObject
-            Write-Warning "Test case $input failed. '$left' doesn't equal '$right'"
+            Write-Host -ForegroundColor Red "Test case $input failed. '$left' doesn't equal '$right'"
         }
 
         if ($runtimeInMS -lt 1000)
@@ -49,7 +49,7 @@ foreach ($input in $sampleInputs)
         }
         else
         {
-            Write-Host -ForegroundColor Red "Run completed in $runtimeInMs milliseconds.  That is too slow!"
+            Write-Host -ForegroundColor Yellow "Run completed in $runtimeInMs milliseconds.  That is too slow!"
         }
     }
     else
