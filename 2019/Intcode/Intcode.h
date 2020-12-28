@@ -1,4 +1,5 @@
 #pragma once
+#include <functional>
 #include <sstream>
 
 namespace Intcode
@@ -79,12 +80,89 @@ namespace Intcode
         return output;
     }
 
-    std::vector<int64_t> ExecuteProgram(ProgramState& state, std::vector<uint64_t> inputs = {}/*, bool returnOnOutput = false*/)
+    class IIntcodeInput
+    {
+    public:
+        virtual int64_t NextInput() = 0;
+    };
+
+    // Takes a vector of integers and returns them one-by-one as input to the intcode program
+    class VectorIntcodeInput : public IIntcodeInput
+    {
+    public:
+        VectorIntcodeInput() = default;
+        VectorIntcodeInput(std::vector<int64_t> inputs):
+            inputs(std::move(inputs))
+        {}
+
+        int64_t NextInput() override
+        {
+            if (index >= inputs.size()) { throw std::out_of_range("Overflow"); }
+            return inputs[index++];
+        }
+
+    private:
+        std::vector<int64_t> inputs{};
+        uint32_t index{};
+    };
+
+    // Calls back the calling code whenever there is a request for input.
+    class CallbackIntcodeInput : public IIntcodeInput
+    {
+    public:
+        CallbackIntcodeInput(std::function<int64_t(void)> callback):
+            callback(callback)
+        {}
+
+        int64_t NextInput() override
+        {
+            return callback();
+        }
+
+    private:
+        std::function<int64_t(void)> callback;
+    };
+
+    class IIntcodeOutput
+    {
+    public:
+        virtual void WriteOutput(int64_t value) = 0;
+    };
+
+    // Contains a vector of integers, output one at a time by the program
+    class VectorIntcodeOutput : public IIntcodeOutput
+    {
+    public:
+        virtual void WriteOutput(int64_t value) override
+        {
+            outputs.emplace_back(value);
+        }
+
+    // private:
+        std::vector<int64_t> outputs{};
+    };
+
+    // Calls back the calling code whenever there is output to write
+    class CallbackIntcodeOutput : public IIntcodeOutput
+    {
+    public:
+        CallbackIntcodeOutput(std::function<void(int64_t)> callback):
+            callback(callback)
+        {}
+
+        virtual void WriteOutput(int64_t value) override
+        {
+            callback(value);
+        }
+
+    private:
+        std::function<void(int64_t)> callback;
+    };
+
+    void ExecuteProgram(ProgramState& state, IIntcodeInput* input, IIntcodeOutput* output)
     {
         auto& program = state.program;
         auto& instructionCounter = state.instructionCounter;
-        std::vector<int64_t> result{};
-        uint32_t inputCount{};
 
         while ((OpCode)program[instructionCounter] != OpCode::Terminate)
         {
@@ -127,7 +205,7 @@ namespace Intcode
             case OpCode::Input:
             {
                 const auto destination = firstParamRelative ? state.relativeBasePointer + program[instructionCounter + 1] : program[instructionCounter + 1];
-                program[destination] = inputs[inputCount++];
+                program[destination] = input->NextInput();
                 instructionCounter += 2;
                 break;
             }
@@ -136,10 +214,8 @@ namespace Intcode
                 const auto param1 = firstParamImmediate ? program[instructionCounter + 1] :
                                     firstParamRelative ? program[state.relativeBasePointer + program[instructionCounter + 1]] :
                                     program[program[instructionCounter + 1]];
-                result.emplace_back(param1);
+                output->WriteOutput(param1);
                 instructionCounter += 2;
-                // Guess - return when second output is reached
-                // if (result.size() == 2) { return result; }
                 break;
             }
             case OpCode::JumpIfTrue:
@@ -218,6 +294,5 @@ namespace Intcode
                 throw std::exception("Invalid opcode");
             }
         }
-        return result;
     }
 }

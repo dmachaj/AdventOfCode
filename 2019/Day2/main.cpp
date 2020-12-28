@@ -11,10 +11,12 @@
 void Part1()
 {
     auto program = Intcode::ParseProgram();
-    Intcode::ExecuteProgram(program);
+    auto input = Intcode::VectorIntcodeInput();
+    auto output = Intcode::VectorIntcodeOutput();
+    Intcode::ExecuteProgram(program, &input, &output);
     size_t trailingZerosToKeep = (program.instructionCounter > 20) ? 2 : 0; // unique output has 2 trailing zeros.  Keep them so we match.
-    const auto output = Intcode::ProgramToString(program, trailingZerosToKeep);
-    std::cout << output << std::endl;
+    const auto result = Intcode::ProgramToString(program, trailingZerosToKeep);
+    std::cout << result << std::endl;
 }
 
 void Part2()
@@ -28,7 +30,9 @@ void Part2()
             auto programCopy = program;
             programCopy.program[1] = i;
             programCopy.program[2] = j;
-            Intcode::ExecuteProgram(programCopy);
+            auto input = Intcode::VectorIntcodeInput();
+            auto output = Intcode::VectorIntcodeOutput();
+            Intcode::ExecuteProgram(programCopy, &input, &output);
 
             if (programCopy.program[0] == 19690720)
             {

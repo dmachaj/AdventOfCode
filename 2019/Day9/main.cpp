@@ -13,9 +13,11 @@ namespace
     void ExecuteFullProblem(uint32_t mode)
     {
         auto state = Intcode::ParseProgram();
-        const auto result = Intcode::ExecuteProgram(state, {mode} /* test input */);
+        auto input = Intcode::VectorIntcodeInput({mode} /* test input */);
+        auto output = Intcode::VectorIntcodeOutput();
+        Intcode::ExecuteProgram(state, &input, &output);
         std::ostringstream outStream;
-        for (const auto& resultVal : result )
+        for (const auto& resultVal : output.outputs)
         {
             outStream << resultVal << ",";
         }

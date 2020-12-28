@@ -24,14 +24,16 @@ namespace
             for (auto x = 0UL; x < c_width; ++x)
             {
                 Intcode::ProgramState stateCopy {state.program, 0, 0};
-                std::vector<uint64_t> programInput{x, y};
-                const auto result = Intcode::ExecuteProgram(stateCopy, programInput);
-                if ((result.size() > 0) && (result[0] != 0))
+                std::vector<int64_t> programInput{x, y};
+                auto input = Intcode::VectorIntcodeInput(programInput);
+                auto output = Intcode::VectorIntcodeOutput();
+                Intcode::ExecuteProgram(stateCopy, &input, &output);
+                if ((output.outputs.size() > 0) && (output.outputs[0] != 0))
                 {
                     results[y * c_width + x] = true;
                     anyXMatches = true;
                 }
-                else if ((results.size() > 0) && (result[0] == 0) && anyXMatches)
+                else if ((results.size() > 0) && (output.outputs[0] == 0) && anyXMatches)
                 {
                     break;
                 }
@@ -65,9 +67,11 @@ namespace
         }
 
         Intcode::ProgramState state {program, 0, 0};
-        std::vector<uint64_t> programInput{x, y};
-        const auto intCodeResult = Intcode::ExecuteProgram(state, programInput);
-        const bool result = ((intCodeResult.size() != 0) && (intCodeResult[0] != 0));
+        std::vector<int64_t> programInput{x, y};
+        auto input = Intcode::VectorIntcodeInput(programInput);
+        auto output = Intcode::VectorIntcodeOutput();
+        Intcode::ExecuteProgram(state, &input, &output);
+        const bool result = ((output.outputs.size() != 0) && (output.outputs[0] != 0));
         resultCache.emplace((x * 10000) + y, result);
         return result;
     }

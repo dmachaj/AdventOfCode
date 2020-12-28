@@ -13,12 +13,14 @@ namespace
     void Part1()
     {
         auto state = Intcode::ParseProgram();
-        const auto result = Intcode::ExecuteProgram(state, {0ULL});
+        auto input = Intcode::VectorIntcodeInput({0ULL});
+        auto output = Intcode::VectorIntcodeOutput();
+        Intcode::ExecuteProgram(state, &input, &output);
 
         std::vector<bool> view{};
         uint32_t width{};
         uint32_t counter{};
-        for (const auto& letter : result)
+        for (const auto& letter : output.outputs)
         {
             if (letter == '#')
             {
@@ -94,7 +96,7 @@ namespace
         // Switch to move mode
         state.program[0] = 2;
 
-        std::vector<uint64_t> programInput{};
+        std::vector<int64_t> programInput{};
         std::string mainProgram = "A,B,B,C,B,C,B,C,A,A";
         std::string aProgram = "L,6,R,8,L,4,R,8,L,12";
         std::string bProgram = "L,12,R,10,L,4";
@@ -103,36 +105,38 @@ namespace
 
         for (const auto& digit : mainProgram)
         {
-            programInput.emplace_back((uint64_t)digit);
+            programInput.emplace_back((int64_t)digit);
         }
         programInput.emplace_back(10);
         for (const auto& digit : aProgram)
         {
-            programInput.emplace_back((uint64_t)digit);
+            programInput.emplace_back((int64_t)digit);
         }
         programInput.emplace_back(10);
         for (const auto& digit : bProgram)
         {
-            programInput.emplace_back((uint64_t)digit);
+            programInput.emplace_back((int64_t)digit);
         }
         programInput.emplace_back(10);
         for (const auto& digit : cProgram)
         {
-            programInput.emplace_back((uint64_t)digit);
+            programInput.emplace_back((int64_t)digit);
         }
         programInput.emplace_back(10);
         for (const auto& digit : liveFeed)
         {
-            programInput.emplace_back((uint64_t)digit);
+            programInput.emplace_back((int64_t)digit);
         }
         programInput.emplace_back(10);
 
-        const auto result = Intcode::ExecuteProgram(state, programInput);
-        for (auto i : result)
+        auto input = Intcode::VectorIntcodeInput(programInput);
+        auto output = Intcode::VectorIntcodeOutput();
+        Intcode::ExecuteProgram(state, &input, &output);
+        for (auto i : output.outputs)
         {
             std::cerr << (char)i;
         }
-        std::cout << result[result.size() - 1] << std::endl;
+        std::cout << output.outputs[output.outputs.size() - 1] << std::endl;
     }
 }
 
