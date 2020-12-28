@@ -3,8 +3,9 @@
 #include <cmath>
 #include <iostream>
 #include <string>
+#include "HelpfulInfrastructure.h"
 
-void part1()
+void Part1()
 {
     uint64_t totalFuel{};
     std::string input;
@@ -12,7 +13,7 @@ void part1()
     {
         const auto mass = std::atoi(input.c_str());
         const auto fuel = (mass / 3) - 2;
-        std::cerr << "Mass: " << mass << " Fuel: " << fuel << std::endl;
+        // std::cerr << "Mass: " << mass << " Fuel: " << fuel << std::endl;
         totalFuel += fuel;
     }
 
@@ -25,7 +26,7 @@ int64_t ComputeFuel(int64_t mass)
     return std::max(fuel, 0LL);
 }
 
-void part2()
+void Part2()
 {
     uint64_t totalFuel{};
     std::string input;
@@ -38,12 +39,12 @@ void part2()
         auto fuelForFuel = ComputeFuel(fuel);
         while (fuelForFuel != 0)
         {
-            std::cerr << "FuelForFuel: " << fuelForFuel << " ";
+            // std::cerr << "FuelForFuel: " << fuelForFuel << " ";
             totalFuel += fuelForFuel;
             fuelForFuel = ComputeFuel(fuelForFuel);
         }
 
-        std::cerr << "Mass: " << mass << " Fuel: " << fuel << std::endl;
+        // std::cerr << "Mass: " << mass << " Fuel: " << fuel << std::endl;
     }
 
     std::cout << totalFuel << std::endl;
@@ -51,7 +52,6 @@ void part2()
 
 int main()
 {
-    // part1();
-    part2();
+    RunPart1() ? Part1() : Part2();
     return 0;
 }

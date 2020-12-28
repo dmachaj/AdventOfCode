@@ -5,6 +5,7 @@
 #include <string>
 #include <sstream>
 #include <vector>
+#include "HelpfulInfrastructure.h"
 
 namespace
 {
@@ -126,7 +127,6 @@ void Part2()
 
 int main()
 {
-    // Part1();
-    Part2();
+    RunPart1() ? Part1() : Part2();
     return 0;
 }

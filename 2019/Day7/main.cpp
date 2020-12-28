@@ -4,6 +4,7 @@
 #include <iostream>
 #include <string>
 #include <vector>
+#include "HelpfulInfrastructure.h"
 
 namespace
 {
@@ -220,7 +221,6 @@ namespace
 
 int main()
 {
-    // Part1();
-    Part2();
+    RunPart1() ? Part1() : Part2();
     return 0;
 }

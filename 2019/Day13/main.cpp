@@ -5,6 +5,7 @@
 #include <string>
 #include <vector>
 #include <fstream>
+#include "HelpfulInfrastructure.h"
 
 namespace
 {
@@ -345,8 +346,7 @@ namespace
 
 int main()
 {
-    bool part1 = false;
-    if (part1)
+    if (RunPart1())
     {
         // std::ifstream inputFileStream;
         // inputFileStream.open("C:\\code\\AdventOfCode\\2019\\Day13\\Part1\\unique.in");
