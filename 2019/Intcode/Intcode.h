@@ -1,4 +1,5 @@
 #pragma once
+#include <sstream>
 
 namespace Intcode
 {
@@ -60,7 +61,25 @@ namespace Intcode
         return {std::move(program), 0, 0};
     }
 
-    std::vector<int64_t> ExecuteProgram(ProgramState& state, std::vector<uint64_t> inputs/*, bool returnOnOutput = false*/)
+    std::string ProgramToString(const ProgramState& state, size_t trailingZerosToKeep = 0)
+    {
+        auto copy = state;
+
+        // Remove all trailing zeroes from the unallocated space
+        auto lastNonZero = std::find_if(copy.program.rbegin(), copy.program.rend(), [](const auto value) { return value != 0; });
+        copy.program.erase((lastNonZero.base() + trailingZerosToKeep), copy.program.end());
+
+        std::ostringstream outputStream{};
+        for (const auto entry : copy.program)
+        {
+            outputStream << entry << ",";
+        }
+        std::string output = outputStream.str();
+        output.erase(output.length() - 1, 1); // remove trailing comma
+        return output;
+    }
+
+    std::vector<int64_t> ExecuteProgram(ProgramState& state, std::vector<uint64_t> inputs = {}/*, bool returnOnOutput = false*/)
     {
         auto& program = state.program;
         auto& instructionCounter = state.instructionCounter;
@@ -120,7 +139,7 @@ namespace Intcode
                 result.emplace_back(param1);
                 instructionCounter += 2;
                 // Guess - return when second output is reached
-                if (result.size() == 2) { return result; }
+                // if (result.size() == 2) { return result; }
                 break;
             }
             case OpCode::JumpIfTrue:
