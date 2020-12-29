@@ -33,12 +33,12 @@ call ..\..\verify.cmd Part1
 call ..\..\verify.cmd Part2
 popd
 
-@REM pushd ..\day13
-@REM echo Checking day 13
-@REM call ..\..\build.cmd
-@REM call ..\..\verify.cmd Part1
-@REM call ..\..\verify.cmd Part2
-@REM popd
+pushd ..\day13
+echo Checking day 13
+call ..\..\build.cmd
+call ..\..\verify.cmd Part1
+call ..\..\verify.cmd Part2
+popd
 
 pushd ..\day17
 echo Checking day 17

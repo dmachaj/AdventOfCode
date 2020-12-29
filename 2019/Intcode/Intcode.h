@@ -52,19 +52,24 @@ namespace Intcode
         return false;
     }
 
-    ProgramState ParseProgram()
+    ProgramState ParseProgram(std::istream& inputStream)
     {
         std::vector<int64_t> program(c_memorySize, 0);
 
         std::string input;
         size_t offset{};
-        while (std::getline(std::cin, input, ','))
+        while (std::getline(inputStream, input, ','))
         {
             program[offset] = (std::atoll(input.c_str()));
             ++offset;
         }
 
         return {std::move(program), 0, 0};
+    }
+
+    ProgramState ParseProgram()
+    {
+        return ParseProgram(std::cin);
     }
 
     std::string ProgramToString(const ProgramState& state, size_t trailingZerosToKeep = 0)
@@ -313,6 +318,7 @@ namespace Intcode
             }
             default:
                 std::cerr << "program[0] at time of crash = " << program[0] << std::endl;
+                std::cerr << "program[" << instructionCounter << "] = " << program[instructionCounter] << std::endl;
                 throw std::exception("Invalid opcode");
             }
         }
