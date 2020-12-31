@@ -68,7 +68,7 @@ namespace
         return result;
     }
 
-    void PrintMapToStderr(const Maze& map, Position& currentLocation)
+    void PrintMapToStderr(const Maze& map)
     {
         const auto xCompare = [](const auto& lhs, const auto& rhs) { return lhs.first.first < rhs.first.first; };
         const auto yCompare = [](const auto& lhs, const auto& rhs) { return lhs.first.second < rhs.first.second; };
@@ -82,11 +82,7 @@ namespace
             for (auto x = minX; x <= maxX; ++x)
             {
                 auto location = std::make_pair(x, y);
-                if (location == currentLocation)
-                {
-                    std::cerr << "D";
-                }
-                else if (map.find(location) != map.end())
+                if (map.find(location) != map.end())
                 {
                     if (location == std::make_pair(0, 0))
                     {
@@ -117,7 +113,7 @@ namespace
 
         if (distanceFromStart % 30 == 0)
         {
-            PrintMapToStderr(map, currentLocation);
+            PrintMapToStderr(map);
         }
 
         const auto directionLambda = [&](Movement direction)
@@ -134,6 +130,8 @@ namespace
             }
             else if (result == StatusCode::MovedAndFoundAnswer)
             {
+                // Recurse!
+                FloodFillMap(stateCopy, map, newLocation, distanceFromStart + 1);
                 map[newLocation] = {'O', distanceFromStart + 1 };
             }
             else if (result == StatusCode::Moved)
@@ -163,6 +161,7 @@ namespace
         Maze map;
         Position currentLocation{};
         FloodFillMap(state, map, currentLocation, 0UL);
+        PrintMapToStderr(map);
 
         const uint32_t result = std::find_if(map.begin(), map.end(), [](const auto& location) { return location.second.output == 'O'; })->second.distanceFromStart;
         std::cout << result << std::endl;
@@ -170,7 +169,60 @@ namespace
 
     void Part2()
     {
-        std::cout << 0 << std::endl;
+        auto state = Intcode::ParseProgram();
+
+        // Run once until it is ready for the first input
+        {
+            Intcode::VectorIntcodeInput input;
+            Intcode::VectorIntcodeOutput output;
+            Intcode::ExecuteProgram(state, &input, &output);
+        }
+
+        Maze map;
+        Position currentLocation{};
+        FloodFillMap(state, map, currentLocation, 0UL);
+        PrintMapToStderr(map);
+
+        const auto Done = [](const Maze& map)
+        {
+            return std::find_if(map.begin(), map.end(), [](const auto& location)
+            {
+                return location.second.output == '.';
+            }) == map.end();
+        };
+
+        uint32_t iterationCount{};
+        while (!Done(map))
+        {
+            ++iterationCount;
+
+            auto mapCopy = map;
+            for (const auto& location : mapCopy)
+            {
+                if (location.second.output == 'O')
+                {
+                    auto north = IncrementLocation(location.first, Movement::North);
+                    if (mapCopy[north].output == '.') { map[north].output = 'O'; }
+
+                    auto east = IncrementLocation(location.first, Movement::East);
+                    if (mapCopy[east].output == '.') { map[east].output = 'O'; }
+
+                    auto south = IncrementLocation(location.first, Movement::South);
+                    if (mapCopy[south].output == '.') { map[south].output = 'O'; }
+
+                    auto west = IncrementLocation(location.first, Movement::West);
+                    if (mapCopy[west].output == '.') { map[west].output = 'O'; }
+                }
+            }
+
+            if (iterationCount % 40 == 0)
+            {
+                PrintMapToStderr(map);
+            }
+        }
+
+        PrintMapToStderr(map);
+        std::cout << iterationCount << std::endl;
     }
 }
 
