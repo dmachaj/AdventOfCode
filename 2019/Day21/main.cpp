@@ -26,11 +26,13 @@ namespace
     void Part1(std::istream& inStream)
     {
         std::ostringstream program;
-        // If A or B is a gap and C is fine then jump
+        // If A or B or C is a gap and D is fine then jump
         program << "NOT A T" << std::endl;
         program << "NOT B J" << std::endl;
         program << "OR T J" << std::endl;
-        program << "AND C J" << std::endl;
+        program << "NOT C T" << std::endl;
+        program << "OR T J" << std::endl;
+        program << "AND D J" << std::endl;
         // C is a gap but D is fine, jump
         program << "NOT C T" << std::endl;
         program << "AND D T" << std::endl;
@@ -67,15 +69,24 @@ namespace
     void Part2(std::istream& inStream)
     {
         std::ostringstream program;
-        // If A or B is a gap and C is fine then jump
+        // Want E or H to be true so that we aren't stranded after a jump
+        program << "NOT E T" << std::endl;
+        program << "NOT T T" << std::endl;
+        program << "NOT H J" << std::endl;
+        program << "NOT J J" << std::endl;
+        program << "OR T J" << std::endl;
+        // NOR A with itself to set a true into T register
         program << "NOT A T" << std::endl;
-        program << "NOT B J" << std::endl;
-        program << "OR T J" << std::endl;
-        program << "AND C J" << std::endl;
-        // C is a gap but D is fine, jump
-        program << "NOT C T" << std::endl;
-        program << "AND D T" << std::endl;
-        program << "OR T J" << std::endl;
+        program << "OR A T" << std::endl;
+        // AND A,B,C together. If any is false then T will be false
+        program << "AND A T" << std::endl;
+        program << "AND B T" << std::endl;
+        program << "AND C T" << std::endl;
+        // We only want to jump is there is a gap ahead of us (T is false) and E or H is true so we aren't stranded.
+        program << "NOT T T" << std::endl;
+        program << "AND T J" << std::endl;
+        // Final check, we need a place to land
+        program << "AND D J" << std::endl;
         // End of program
         program << "RUN" << std::endl;
 
