@@ -180,13 +180,17 @@ namespace Intcode
         std::function<void(int64_t)> callback;
     };
 
-    void ExecuteProgram(ProgramState& state, IIntcodeInput* input, IIntcodeOutput* output)
+    void ExecuteProgram(ProgramState& state, IIntcodeInput* input, IIntcodeOutput* output, uint32_t instructionCountLimit = 0)
     {
         auto& program = state.program;
         auto& instructionCounter = state.instructionCounter;
+        uint32_t instructionsExecuted{};
 
         while ((OpCode)program[instructionCounter] != OpCode::Terminate)
         {
+            // Some problems need to timeslice multiple interpreters together.
+            if ((instructionCountLimit != 0) && (instructionsExecuted++ >= instructionCountLimit)) return;
+
             const auto opcode = (OpCode)(program[instructionCounter] % 100);
             const bool firstParamImmediate = ParamIsImmediate(program[instructionCounter], 100);
             const bool firstParamRelative = ParamIsRelative(program[instructionCounter], 100);

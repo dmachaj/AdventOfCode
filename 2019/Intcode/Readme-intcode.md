@@ -12,8 +12,8 @@
 * https://adventofcode.com/2019/day/17 (traverse scaffolding)
 * https://adventofcode.com/2019/day/19 (tractor beam)
 * https://adventofcode.com/2019/day/21 (jumping robot with its own assembly language)
-* (never touched) day 23 intcode
-* (never touched) day 25 intcode
+* https://adventofcode.com/2019/day/23 (50 networked interpreters)
+* https://adventofcode.com/2019/day/23 (interactive adventure game)
 
 ## Opcodes
 

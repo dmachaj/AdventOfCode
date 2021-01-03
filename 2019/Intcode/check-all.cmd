@@ -68,16 +68,17 @@ call ..\..\verify.cmd Part1
 call ..\..\verify.cmd Part2
 popd
 
-@REM pushd ..\day23
-@REM echo Checking day 23
-@REM call ..\..\build.cmd
-@REM call ..\..\verify.cmd Part1
-@REM call ..\..\verify.cmd Part2
-@REM popd
+pushd ..\day23
+echo Checking day 23
+call ..\..\build.cmd
+call ..\..\verify.cmd Part1
+call ..\..\verify.cmd Part2
+popd
 
-@REM pushd ..\day25
-@REM echo Checking day 25
-@REM call ..\..\build.cmd
-@REM call ..\..\verify.cmd Part1
+pushd ..\day25
+echo Checking day 25
+call ..\..\build.cmd
+call ..\..\verify.cmd Part1
+@REM Day 25 never has a part 2
 @REM call ..\..\verify.cmd Part2
-@REM popd
+popd
