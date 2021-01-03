@@ -128,11 +128,98 @@ namespace
         std::cout << result << std::endl;
     }
 
+    using AllBoards = std::map<int32_t, std::vector<bool>>;
+    enum class Direction
+    {
+        Up,
+        Down,
+        Left,
+        Right
+    };
+    uint32_t CheckSquareV2(const AllBoards& allBoards, int32_t x, int32_t y, int32_t recursionDepth, Direction direction)
+    {
+        if (x == 2 && y == 2) // Recursing down a level
+        {
+            // Don't recurse deeper than we have to
+            if (allBoards.find(recursionDepth + 1) == allBoards.end()) return 0UL;
+
+            const auto& board = allBoards.at(recursionDepth + 1);
+            uint32_t result{};
+            switch (direction)
+            {
+                case Direction::Up:
+                    for (auto xIter = 0UL; xIter < 5UL; ++xIter)
+                    {
+                        auto index = (4 * 5) + xIter;
+                        if (board[index]) ++result;
+                    }
+                    break;
+
+                case Direction::Down:
+                    for (auto xIter = 0UL; xIter < 5UL; ++xIter)
+                    {
+                        auto index = (0 * 5) + xIter;
+                        if (board[index]) ++result;
+                    }
+                    break;
+
+                case Direction::Left:
+                    for (auto yIter = 0UL; yIter < 5UL; ++yIter)
+                    {
+                        auto index = (yIter * 5) + 4;
+                        if (board[index]) ++result;
+                    }
+                    break;
+
+                case Direction::Right:
+                    for (auto yIter = 0UL; yIter < 5UL; ++yIter)
+                    {
+                        auto index = (yIter * 5) + 0;
+                        if (board[index]) ++result;
+                    }
+                    break;
+            }
+            return result;
+        }
+        else // current level or recursing up one
+        {
+            if (x < 0)
+            {
+                x = 1;
+                y = 2;
+                --recursionDepth;
+            }
+            else if (y < 0)
+            {
+                x = 2;
+                y = 1;
+                --recursionDepth;
+            }
+            else if (x >= 5)
+            {
+                x = 3;
+                y = 2;
+                --recursionDepth;
+            }
+            else if (y >= 5)
+            {
+                x = 2;
+                y = 3;
+                --recursionDepth;
+            }
+
+            if (allBoards.find(recursionDepth) == allBoards.end()) return 0UL;
+            auto index = (y * 5) + x;
+            return allBoards.at(recursionDepth)[index] ? 1UL : 0UL;
+        }
+    }
+
     void Part2()
     {
         uint32_t iterationCount{};
-        std::vector<bool> board;
+        AllBoards allBoards;
         {
+            std::vector<bool> board;
             std::string input;
             std::getline(std::cin, input);
             iterationCount = (uint32_t)std::atoi(input.c_str());
@@ -145,58 +232,63 @@ namespace
                 }
             }
             if (board.size() != 25) { throw; }
+            PrintBoard(board);
+            allBoards[0] = std::move(board);
         }
-        // PrintBoard(board);
 
-        std::set<std::vector<bool>> allBoards { board };
-        while (true)
+        // every iteration we will grow the map by one board :|
+        for (auto i = 1UL; i <= iterationCount; ++i)
         {
-            auto boardCopy = board;
-            for (auto y = 0; y < 5; ++y)
+            std::vector<bool> blankBoard(25, false);
+            allBoards[i] = blankBoard;
+            allBoards[-1 * (int32_t)i] = blankBoard;
+        }
+
+        for (auto i = 0UL; i < iterationCount; ++i)
+        {
+            const auto allBoardsCopy = allBoards;
+            for (auto z = -((int32_t)iterationCount); z < (int32_t)iterationCount; ++z)
             {
-                for (auto x = 0; x < 5; ++x)
+                for (auto y = 0; y < 5; ++y)
                 {
-                    auto up = CheckSquare(boardCopy, x, y - 1);
-                    auto down = CheckSquare(boardCopy, x, y + 1);
-                    auto left = CheckSquare(boardCopy, x - 1, y);
-                    auto right = CheckSquare(boardCopy, x + 1, y);
-
-                    uint32_t total{};
-                    if (up) ++total;
-                    if (down) ++total;
-                    if (left) ++total;
-                    if (right) ++total;
-
-                    const auto index = (y * 5) + x;
-                    if (boardCopy[index] && (total != 1))
+                    for (auto x = 0; x < 5; ++x)
                     {
-                        board[index] = false;
-                    }
+                        if (x == 2 && y == 2) continue; // recursion square
 
-                    if (!boardCopy[index] && ((total == 1) || (total == 2)))
-                    {
-                        board[index] = true;
+                        auto up = CheckSquareV2(allBoardsCopy, x, y - 1, z, Direction::Up);
+                        auto down = CheckSquareV2(allBoardsCopy, x, y + 1, z, Direction::Down);
+                        auto left = CheckSquareV2(allBoardsCopy, x - 1, y, z, Direction::Left);
+                        auto right = CheckSquareV2(allBoardsCopy, x + 1, y, z, Direction::Right);
+                        const uint32_t total{ up + down + left + right};
+
+                        auto& currentBoard = allBoards[z];
+                        const auto index = (y * 5) + x;
+                        if (allBoardsCopy.at(z)[index] && (total != 1))
+                        {
+                            currentBoard[index] = false;
+                        }
+
+                        if (!allBoardsCopy.at(z)[index] && ((total == 1) || (total == 2)))
+                        {
+                            currentBoard[index] = true;
+                        }
                     }
                 }
             }
 
             // PrintBoard(board);
-            if (allBoards.find(board) != allBoards.end())
-            {
-                break;
-            }
-            allBoards.emplace(board);
         }
 
         uint64_t result{};
-        uint64_t multiplier{1ULL};
-        for (auto entry : board)
+        for (const auto& board : allBoards)
         {
-            if (entry)
+            for (auto square : board.second)
             {
-                result += multiplier;
+                if (square)
+                {
+                    ++result;
+                }
             }
-            multiplier *= 2;
         }
 
         std::cout << result << std::endl;
