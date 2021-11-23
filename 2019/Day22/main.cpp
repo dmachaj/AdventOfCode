@@ -153,9 +153,179 @@ namespace
         }
     }
 
+    uint64_t FollowNewStackBackwards(uint64_t deckSize, uint64_t currentLocation)
+    {
+        return deckSize - currentLocation - 1;
+    }
+
+    uint64_t FollowCutBackwards(uint64_t deckSize, uint64_t currentLocation, int64_t cutSize)
+    {
+        auto newLocation = (int64_t)currentLocation + cutSize;
+        if (newLocation > (int64_t)deckSize)
+        {
+            newLocation %= deckSize;
+        }
+        else if (newLocation < 0)
+        {
+            newLocation += deckSize;
+        }
+        return (uint64_t)newLocation;
+    }
+
+    uint64_t FollowDealIncrementBackwards(uint64_t deckSize, uint64_t endingLocation, uint64_t dealCount)
+    {
+        // Dumb solution.  Seems to work ok but far too slow to go through trillions of elements.
+        //
+        // uint64_t incrementCounter = 0ULL;
+        // int64_t currentLocation = (int64_t)endingLocation;
+        //
+        // while (currentLocation != 0)
+        // {
+        //     ++incrementCounter;
+        //     currentLocation -= dealCount;
+        //     if (currentLocation < 0)
+        //     {
+        //         currentLocation += deckSize;
+        //     }
+        // }
+        //
+        // return incrementCounter;
+
+        // Easy answer 0 doesn't move
+        if (endingLocation == 0) { return 0ULL; }
+
+        // Figure out how many iterations through the deck it took to get to this index.  Adding the deckSize
+        // until it divides evenly by the dealCount will tell us that.  Dividing that by the dealCount will
+        // tell us the original location of this index before the shuffle.
+        //
+        // This took me an hour of staring at a postit to figure out :|
+        while (endingLocation % dealCount != 0)
+        {
+            endingLocation += deckSize;
+        }
+        return endingLocation / dealCount;
+    }
+    
+    uint64_t FollowSortBackwards(uint64_t deckSize, const std::vector<std::string>& commands, uint64_t targetCardLocation)
+    {
+        uint64_t currentLocation = targetCardLocation;
+
+        for (auto commandIter = commands.rbegin(); commandIter != commands.rend(); ++commandIter)
+        {
+            auto command = *commandIter;
+            if (command == "deal into new stack")
+            {
+                currentLocation = FollowNewStackBackwards(deckSize, currentLocation);
+            }
+            else if (command.starts_with("deal with"))
+            {
+                std::string dealCommandStr = command.substr("deal with increment "sv.length());
+                std::istringstream dealStream(dealCommandStr);
+                uint64_t dealCount;
+                dealStream >> dealCount;
+                currentLocation = FollowDealIncrementBackwards(deckSize, currentLocation, dealCount);
+            }
+            else if (command.starts_with("cut"))
+            {
+                std::string cutCountStr = command.substr(4);
+                std::istringstream cutStream(cutCountStr);
+                int64_t cutCount;
+                cutStream >> cutCount;
+                currentLocation = FollowCutBackwards(deckSize, currentLocation, cutCount);
+            }
+            else
+            {
+                throw std::exception("Invalid shuffle");
+            }
+        }
+
+        return currentLocation;
+    }
+
+    void TEST(uint64_t expected, uint64_t actual)
+    {
+        if (expected != actual) throw std::exception();
+    }
+
     void Part2()
     {
-        std::cout << 0 << std::endl;
+        constexpr uint64_t c_targetCardLocation = 2020;
+
+        uint64_t deckSize;
+        std::cin >> deckSize;
+        if (deckSize != 119315717514047) throw std::exception("Bad input");
+        std::cin.get(); // eat newline 
+
+        uint64_t shuffleProcessCount;
+        std::cin >> shuffleProcessCount;
+        if (shuffleProcessCount != 101741582076661) throw std::exception("Bad input");
+        std::cin.get(); // eat newline 
+
+        TEST(99, FollowNewStackBackwards(100, 0));
+        TEST(0, FollowNewStackBackwards(100, 99));
+        TEST(49, FollowNewStackBackwards(100, 50));
+        TEST(50, FollowNewStackBackwards(100, 49));
+
+        TEST(3, FollowCutBackwards(100, 2, 1));
+        TEST(1, FollowCutBackwards(100, 2, -1));
+        TEST(4, FollowCutBackwards(100, 2, 2));
+        TEST(0, FollowCutBackwards(100, 2, -2));
+        TEST(99, FollowCutBackwards(100, 2, -3));
+        TEST(22, FollowCutBackwards(100, 2, 20));
+        TEST(82, FollowCutBackwards(100, 2, -20));
+
+        TEST(0, FollowDealIncrementBackwards(10, 0, 3));
+        TEST(7, FollowDealIncrementBackwards(10, 1, 3));
+        TEST(4, FollowDealIncrementBackwards(10, 2, 3));
+        TEST(1, FollowDealIncrementBackwards(10, 3, 3));
+        TEST(8, FollowDealIncrementBackwards(10, 4, 3));
+        TEST(5, FollowDealIncrementBackwards(10, 5, 3));
+        TEST(2, FollowDealIncrementBackwards(10, 6, 3));
+        TEST(9, FollowDealIncrementBackwards(10, 7, 3));
+        TEST(6, FollowDealIncrementBackwards(10, 8, 3));
+        TEST(3, FollowDealIncrementBackwards(10, 9, 3));
+
+        TEST(0, FollowDealIncrementBackwards(10, 0, 7));
+        TEST(3, FollowDealIncrementBackwards(10, 1, 7));
+        TEST(6, FollowDealIncrementBackwards(10, 2, 7));
+        TEST(9, FollowDealIncrementBackwards(10, 3, 7));
+        TEST(2, FollowDealIncrementBackwards(10, 4, 7));
+        TEST(5, FollowDealIncrementBackwards(10, 5, 7));
+        TEST(8, FollowDealIncrementBackwards(10, 6, 7));
+        TEST(1, FollowDealIncrementBackwards(10, 7, 7));
+        TEST(4, FollowDealIncrementBackwards(10, 8, 7));
+        TEST(7, FollowDealIncrementBackwards(10, 9, 7));
+
+        std::vector<std::string> commands;
+        {
+            std::string input;
+            while (std::getline(std::cin, input))
+            {
+                commands.emplace_back(std::move(input));
+            }
+        }
+
+        // Algorithm is as follows:
+        // Keep an eye on the 2020th spot in the deck.  Follow shuffle backwards until the beginning.  That is our answer for one shuffle.
+        // Run the shuffle repeatedly to figure out the cycle count (e.g. 10 shuffles and you're back where you're started).
+        // The shuffle count MOD cycle count is how many shuffles actually matter.
+
+        uint64_t iterationsUntilCycle = 0;
+        auto currentCardLocation = c_targetCardLocation;
+        do
+        {
+            ++iterationsUntilCycle;
+            currentCardLocation = FollowSortBackwards(deckSize, commands, currentCardLocation);
+        } while (currentCardLocation != c_targetCardLocation);
+
+        uint64_t trueIterationCount = shuffleProcessCount / iterationsUntilCycle;
+        currentCardLocation = c_targetCardLocation;
+        for (auto i = 0ULL; i < trueIterationCount; ++i)
+        {
+            currentCardLocation = FollowSortBackwards(deckSize, commands, currentCardLocation);
+        }
+
+        std::cout << currentCardLocation << std::endl;
     }
 }
 
