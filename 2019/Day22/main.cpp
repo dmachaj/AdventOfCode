@@ -202,40 +202,51 @@ namespace
         while (endingLocation % dealCount != 0)
         {
             endingLocation += deckSize;
+
+            if (endingLocation < deckSize) { throw std::exception("Int64 overflow"); }
         }
         return endingLocation / dealCount;
     }
-    
-    uint64_t FollowSortBackwards(uint64_t deckSize, const std::vector<std::string>& commands, uint64_t targetCardLocation)
+
+    struct ShuffleCommand
+    {
+        enum class Type
+        {
+            DealNewStack,
+            DealWithIncrement,
+            Cut
+        };
+        Type type;
+        int64_t amount;
+    };
+
+    uint64_t FollowShuffleBackwards(uint64_t deckSize, const std::vector<ShuffleCommand>& commands, uint64_t targetCardLocation)
     {
         uint64_t currentLocation = targetCardLocation;
 
         for (auto commandIter = commands.rbegin(); commandIter != commands.rend(); ++commandIter)
         {
             auto command = *commandIter;
-            if (command == "deal into new stack")
+            if (command.type == ShuffleCommand::Type::DealNewStack)
             {
                 currentLocation = FollowNewStackBackwards(deckSize, currentLocation);
             }
-            else if (command.starts_with("deal with"))
+            else if (command.type == ShuffleCommand::Type::DealWithIncrement)
             {
-                std::string dealCommandStr = command.substr("deal with increment "sv.length());
-                std::istringstream dealStream(dealCommandStr);
-                uint64_t dealCount;
-                dealStream >> dealCount;
-                currentLocation = FollowDealIncrementBackwards(deckSize, currentLocation, dealCount);
+                currentLocation = FollowDealIncrementBackwards(deckSize, currentLocation, command.amount);
             }
-            else if (command.starts_with("cut"))
+            else if (command.type == ShuffleCommand::Type::Cut)
             {
-                std::string cutCountStr = command.substr(4);
-                std::istringstream cutStream(cutCountStr);
-                int64_t cutCount;
-                cutStream >> cutCount;
-                currentLocation = FollowCutBackwards(deckSize, currentLocation, cutCount);
+                currentLocation = FollowCutBackwards(deckSize, currentLocation, command.amount);
             }
             else
             {
                 throw std::exception("Invalid shuffle");
+            }
+
+            if (currentLocation >= deckSize)
+            {
+                throw std::exception("Sort went out of bounds");
             }
         }
 
@@ -296,12 +307,37 @@ namespace
         TEST(4, FollowDealIncrementBackwards(10, 8, 7));
         TEST(7, FollowDealIncrementBackwards(10, 9, 7));
 
-        std::vector<std::string> commands;
+        std::vector<std::string> commandStrings;
         {
             std::string input;
             while (std::getline(std::cin, input))
             {
-                commands.emplace_back(std::move(input));
+                commandStrings.emplace_back(std::move(input));
+            }
+        }
+
+        std::vector<ShuffleCommand> commands;
+        for (auto& commandStr : commandStrings)
+        {
+            if (commandStr == "deal into new stack")
+            {
+                commands.emplace_back(ShuffleCommand{ShuffleCommand::Type::DealNewStack, 0});
+            }
+            else if (commandStr.starts_with("deal with"))
+            {
+                std::string dealCommandStr = commandStr.substr("deal with increment "sv.length());
+                std::istringstream dealStream(dealCommandStr);
+                uint32_t dealCount;
+                dealStream >> dealCount;
+                commands.emplace_back(ShuffleCommand{ShuffleCommand::Type::DealWithIncrement, dealCount});
+            }
+            else if (commandStr.starts_with("cut"))
+            {
+                std::string cutCountStr = commandStr.substr(4);
+                std::istringstream cutStream(cutCountStr);
+                int64_t cutCount;
+                cutStream >> cutCount;
+                commands.emplace_back(ShuffleCommand{ShuffleCommand::Type::Cut, cutCount});
             }
         }
 
@@ -315,14 +351,16 @@ namespace
         do
         {
             ++iterationsUntilCycle;
-            currentCardLocation = FollowSortBackwards(deckSize, commands, currentCardLocation);
+            currentCardLocation = FollowShuffleBackwards(deckSize, commands, currentCardLocation);
         } while (currentCardLocation != c_targetCardLocation);
+
+        std::cerr << "Iterations until cycle: " << iterationsUntilCycle << std::endl;
 
         uint64_t trueIterationCount = shuffleProcessCount / iterationsUntilCycle;
         currentCardLocation = c_targetCardLocation;
         for (auto i = 0ULL; i < trueIterationCount; ++i)
         {
-            currentCardLocation = FollowSortBackwards(deckSize, commands, currentCardLocation);
+            currentCardLocation = FollowShuffleBackwards(deckSize, commands, currentCardLocation);
         }
 
         std::cout << currentCardLocation << std::endl;
