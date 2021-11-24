@@ -5,6 +5,7 @@
 #include <string>
 #include <unordered_map>
 #include <vector>
+#include "HelpfulInfrastructure.h"
 
 struct GuardInfo
 {
@@ -63,7 +64,7 @@ std::vector<std::unique_ptr<GuardInfo>> ReadProblemInput()
     return allGuards;
 }
 
-int main()
+void Part1()
 {
     const auto allGuards = ReadProblemInput();
 
@@ -120,5 +121,15 @@ int main()
 
     std::cerr << "Guard " << longestSleepingGuardId << " is asleep the most at minute " << maxAsleepMinute << std::endl;
     std::cout << (longestSleepingGuardId * maxAsleepMinute) << std::endl;
+}
+
+void Part2()
+{
+    std::cout << 0;
+}
+
+int main()
+{
+    RunPart1() ? Part1() : Part2();
     return 0;
 }
