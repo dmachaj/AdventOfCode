@@ -2,6 +2,7 @@
 #include <array>
 #include <cmath>
 #include <iostream>
+#include <numeric>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -19,7 +20,7 @@ std::vector<std::unique_ptr<GuardInfo>> ReadProblemInput()
     std::vector<std::string> allInput;
     {
         std::string input;
-        while(std::getline(std::cin, input))
+        while (std::getline(std::cin, input))
         {
             allInput.emplace_back(std::move(input));
         }
@@ -77,20 +78,14 @@ void Part1()
             guardSleepTotals[guard->guardNumber] = 0;
         }
 
-        for (const auto isAsleep : guard->sleepMinutes)
-        {
-            if (isAsleep)
-            {
-                guardSleepTotals[guard->guardNumber]++;
-            }
-        }
+        const auto timeAsleep = std::accumulate(guard->sleepMinutes.begin(), guard->sleepMinutes.end(), 0);
+        guardSleepTotals[guard->guardNumber] += timeAsleep;
     }
 
     // Use STL algorithms to figure out which guard sleeps the most and stash a copy.
     const auto maxSleep = *std::max_element(guardSleepTotals.begin(), guardSleepTotals.end(), [](const auto& left, const auto& right){ return left.second < right.second; });
     const auto longestSleepingGuardId = maxSleep.first;
     std::cerr << "Max sleep is guard " << maxSleep.first << " with " << maxSleep.second << " minutes" << std::endl;
-    // const auto whichGuard = std::find_if(allGuards.begin(), allGuards.end(), [maxId {maxSleep.first}](const auto& guard) { return guard->guardNumber == maxId; });
 
     // Figure out which minute this guard sleeps the most.
     std::array<uint32_t, 60> timesAsleep{};
@@ -108,24 +103,45 @@ void Part1()
         }
     }
 
-    const auto maxAlseepMinuteCount = *std::max_element(timesAsleep.begin(), timesAsleep.end());
-    uint32_t maxAsleepMinute{};
-    for (auto i = 0UL; i < 60; ++i)
-    {
-        if (timesAsleep[i] == maxAlseepMinuteCount)
-        {
-            maxAsleepMinute = i;
-            break;
-        }
-    }
+    const auto maxAlseepMinuteIter = std::max_element(timesAsleep.begin(), timesAsleep.end());
+    uint32_t maxAsleepMinute = (uint32_t)std::distance(timesAsleep.begin(), maxAlseepMinuteIter);
 
-    std::cerr << "Guard " << longestSleepingGuardId << " is asleep the most at minute " << maxAsleepMinute << std::endl;
+    std::cerr << "Guard " << longestSleepingGuardId << " is asleep the most at minute " << *maxAlseepMinuteIter << std::endl;
     std::cout << (longestSleepingGuardId * maxAsleepMinute) << std::endl;
 }
 
 void Part2()
 {
-    std::cout << 0;
+    const auto allGuards = ReadProblemInput();
+
+    std::unordered_map<uint32_t, std::array<uint32_t, 60>> guardAsleepMinutes;
+    for (const auto& guard : allGuards)
+    {
+        if (guardAsleepMinutes.find(guard->guardNumber) == guardAsleepMinutes.end())
+        {
+            guardAsleepMinutes[guard->guardNumber] = std::array<uint32_t, 60>();
+        }
+
+        auto& currentGuardRef = guardAsleepMinutes[guard->guardNumber];
+        for (auto i = 0UL; i < 60; ++i)
+        {
+            if (guard->sleepMinutes[i])
+            {
+                ++currentGuardRef[i];
+            }
+        }
+    }
+
+    const auto winningGuard = std::max_element(guardAsleepMinutes.begin(), guardAsleepMinutes.end(), 
+        [](const auto& left, const auto& right)
+        {
+            const auto leftMax = *std::max_element(left.second.begin(), left.second.end());
+            const auto rightMax = *std::max_element(right.second.begin(), right.second.end());
+            return leftMax < rightMax;
+        });
+    
+    const auto maxMinute = std::distance(winningGuard->second.begin(), std::max_element(winningGuard->second.begin(), winningGuard->second.end()));
+    std::cout << (winningGuard->first * maxMinute);
 }
 
 int main()
