@@ -2,6 +2,7 @@
 #include <array>
 #include <cmath>
 #include <iostream>
+#include <optional>
 #include <map>
 #include <numeric>
 #include <set>
@@ -46,30 +47,32 @@ namespace
     {
         char MinUniquePosition() const
         {
-            std::multiset<uint32_t> distances;
-            for (const auto& positions : distanceToPositions)
+            if (minPosition.has_value())
             {
-                distances.emplace(positions.second);
+                return *minPosition;
             }
 
-            if (*distances.begin() == *(++distances.begin()))
+            const auto min = std::min_element(distanceToPositions.begin(), distanceToPositions.end(),
+                [](const auto& left, const auto& right)
+                {
+                    return left.second < right.second;
+                });
+            
+            const auto allMins = std::count_if(distanceToPositions.begin(), distanceToPositions.end(),
+                [min{min->second}](const auto& value)
+                {
+                    return value.second == min;
+                });
+            
+            if (allMins != 1)
             {
                 return '.';
             }
-
-            for (const auto& positions : distanceToPositions)
-            {
-                if (positions.second == *distances.begin())
-                {
-                    return positions.first;
-                }
-            }
-
-            throw std::exception("wtf");
-            return '0';
+            return min->first;
         }
         
         std::unordered_map<char, uint32_t> distanceToPositions;
+        std::optional<char> minPosition;
     };
 
     vector<Position> ReadInput()
@@ -89,14 +92,27 @@ namespace
 
     void Part1()
     {
+        size_t boardSize;
+        std::cin >> boardSize;
+        std::cin.get(); // eat newline
+
         auto positions = ReadInput();
 
-        constexpr size_t c_boardSize{400};
-        array<array<Node, c_boardSize>, c_boardSize> board;
-
-        for (auto y = 0UL; y < c_boardSize; ++y)
+        vector<vector<Node>> board;
+        board.reserve(boardSize);
+        for (auto outer = 0UL; outer < boardSize; ++outer)
         {
-            for (auto x = 0UL; x < c_boardSize; ++x)
+            vector<Node> row;
+            for (auto inner = 0UL; inner < boardSize; ++inner)
+            {
+                row.emplace_back(Node());
+            }
+            board.emplace_back(move(row));
+        }
+
+        for (auto y = 0UL; y < boardSize; ++y)
+        {
+            for (auto x = 0UL; x < boardSize; ++x)
             {
                 for (const auto& position : positions)
                 {
@@ -112,7 +128,7 @@ namespace
         }
 
         // Any letter that is minimum at the edge of the board is guaranteed infinite.
-        for (auto i = 0UL; i < c_boardSize; ++i)
+        for (auto i = 0UL; i < boardSize; ++i)
         {
             auto id = board[i][0].MinUniquePosition();
             if (finitePositions.find(id) != finitePositions.end())
@@ -120,7 +136,7 @@ namespace
                 finitePositions.erase(id);
             }
 
-            id = board[i][c_boardSize - 1].MinUniquePosition();
+            id = board[i][boardSize - 1].MinUniquePosition();
             if (finitePositions.find(id) != finitePositions.end())
             {
                 finitePositions.erase(id);
@@ -132,7 +148,7 @@ namespace
                 finitePositions.erase(id);
             }
 
-            id = board[c_boardSize - 1][i].MinUniquePosition();
+            id = board[boardSize - 1][i].MinUniquePosition();
             if (finitePositions.find(id) != finitePositions.end())
             {
                 finitePositions.erase(id);
@@ -156,9 +172,9 @@ namespace
             totals[total] = pos;
         }
 
-        // for (auto y = 0UL; y < c_boardSize; ++y)
+        // for (auto y = 0UL; y < boardSize; ++y)
         // {
-        //     for (auto x = 0UL; x < c_boardSize; ++x)
+        //     for (auto x = 0UL; x < boardSize; ++x)
         //     {
         //         std::cerr << board[x][y].MinUniquePosition();
         //     }
