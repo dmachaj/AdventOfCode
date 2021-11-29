@@ -2,7 +2,6 @@
 #include <array>
 #include <cmath>
 #include <iostream>
-#include <optional>
 #include <map>
 #include <numeric>
 #include <set>
@@ -47,11 +46,6 @@ namespace
     {
         char MinUniquePosition() const
         {
-            if (minPosition.has_value())
-            {
-                return *minPosition;
-            }
-
             const auto min = std::min_element(distanceToPositions.begin(), distanceToPositions.end(),
                 [](const auto& left, const auto& right)
                 {
@@ -70,9 +64,13 @@ namespace
             }
             return min->first;
         }
+
+        uint32_t SumAllDistances() const
+        {
+            return std::accumulate(distanceToPositions.begin(), distanceToPositions.end(), 0UL, [](uint32_t sum, const auto& value) { return sum + value.second; });
+        }
         
         std::unordered_map<char, uint32_t> distanceToPositions;
-        std::optional<char> minPosition;
     };
 
     vector<Position> ReadInput()
@@ -186,7 +184,52 @@ namespace
 
     void Part2()
     {
-        std::cout << 0 << std::endl;
+        size_t boardSize;
+        std::cin >> boardSize;
+        std::cin.get(); // eat newline
+
+        uint32_t maxDistances;
+        std::cin >> maxDistances;
+        std::cin.get(); // eat newline
+
+        auto positions = ReadInput();
+
+        vector<vector<Node>> board;
+        board.reserve(boardSize);
+        for (auto outer = 0UL; outer < boardSize; ++outer)
+        {
+            vector<Node> row;
+            for (auto inner = 0UL; inner < boardSize; ++inner)
+            {
+                row.emplace_back(Node());
+            }
+            board.emplace_back(move(row));
+        }
+
+        for (auto y = 0UL; y < boardSize; ++y)
+        {
+            for (auto x = 0UL; x < boardSize; ++x)
+            {
+                for (const auto& position : positions)
+                {
+                    board[x][y].distanceToPositions[position.identifier] = position.DistanceTo(x, y);
+                }
+            }
+        }
+
+        uint32_t total{};
+        for (auto y = 0UL; y < boardSize; ++y)
+        {
+            for (auto x = 0UL; x < boardSize; ++x)
+            {
+                if (board[x][y].SumAllDistances() < maxDistances)
+                {
+                    ++total;
+                }
+            }
+        }
+
+        std::cout << total << std::endl;
     }
 }
 
