@@ -21,7 +21,7 @@ using namespace std::literals;
 
 namespace
 {
-    void TEST(int first, int second)
+    void TEST(uint64_t first, uint64_t second)
     {
         if (first != second) throw std::exception();
     }
@@ -50,22 +50,29 @@ namespace
         throw std::exception();
     }
 
-    uint32_t BinToInt(string_view input)
+    uint64_t BinToInt(string_view input)
     {
-        uint32_t result{};
+        uint64_t result{};
         for (auto i = 0; i < input.size(); ++i)
         {
             if (input[i] == '1')
             {
-                result += (1 << (input.size() - i - 1));
+                result += (1ULL << (input.size() - i - 1ULL));
             }
         }
         return result;
     }
 
-    std::pair<uint32_t, string_view> NibblePacket(std::string_view input)
+    struct NibbleResult
     {
-        if (input.size() == 0) return make_pair(0UL, ""sv);
+        uint64_t versionSum{};
+        uint64_t result{};
+        std::string_view nextPacket{};
+    };
+
+    NibbleResult NibblePacket(std::string_view input)
+    {
+        if (input.size() == 0) return {0ULL, 0ULL, ""sv};
 
         const string_view versionStr = input.substr(0, 3);
         const auto version = BinToInt(versionStr);
@@ -73,33 +80,54 @@ namespace
         const string_view typeStr = input.substr(3, 3);
         const auto type = BinToInt(typeStr);
 
-        uint32_t versionTotal{ version };
+        uint64_t mathTotal{};
+        uint64_t versionTotal{ version };
         string_view nextPacket;
         if (type == 4)
         {
-            uint32_t skipAmount{5};
+            std::string numberBits;
+            uint64_t skipAmount{5};
             auto numberStr = input.substr(6);
             while (numberStr[0] == '1')
             {
                 skipAmount += 5;
+                numberBits += numberStr.substr(1, 4);
                 numberStr = numberStr.substr(5);
             }
+            numberBits += numberStr.substr(1, 4);
+            mathTotal = BinToInt(numberBits);
             nextPacket = numberStr.substr(5);
+
+            // uint64_t value{};
+            // uint64_t skipAmount{5};
+            // auto numberStr = input.substr(6);
+            // while (numberStr[0] == '1')
+            // {
+            //     auto temp = BinToInt(numberStr.substr(1, 4));
+            //     value = value << ((skipAmount % 5) - 1);
+            //     value += temp;
+
+            //     skipAmount += 5;
+            //     numberStr = numberStr.substr(5);
+            // }
+            // nextPacket = numberStr.substr(5);
         }
         else
         {
+            std::vector<uint64_t> subResults;
             if (input[6] == '0') // 15 bits
             {
                 auto subpacketLengthStr = input.substr(7, 15);
                 auto subpacketLength = BinToInt(subpacketLengthStr);
 
                 nextPacket = input.substr(7 + 15);
-                while (std::distance(input.begin(), nextPacket.begin()) < (subpacketLength + 7 + 15))
+                while ((uint64_t)std::distance(input.begin(), nextPacket.begin()) < (subpacketLength + 7ULL + 15ULL))
                 {
-                    auto pair = NibblePacket(nextPacket);
+                    auto result = NibblePacket(nextPacket);
 
-                    nextPacket = pair.second;
-                    versionTotal += pair.first;
+                    nextPacket = result.nextPacket;
+                    versionTotal += result.versionSum;
+                    subResults.emplace_back(result.result);
                 }
             }
             else if (input[6] == '1') // 11 bits
@@ -107,27 +135,68 @@ namespace
                 auto subpacketCountStr = input.substr(7, 11);
                 auto subpacketCount = BinToInt(subpacketCountStr);
                 nextPacket = input.substr(7 + 11);
-                for (auto i = 0UL; i < subpacketCount; ++i)
+                for (auto i = 0ULL; i < subpacketCount; ++i)
                 {
-                    auto pair = NibblePacket(nextPacket);
-                    versionTotal += pair.first;
-                    nextPacket = pair.second;
+                    auto result = NibblePacket(nextPacket);
+                    versionTotal += result.versionSum;
+                    nextPacket = result.nextPacket;
+                    subResults.emplace_back(result.result);
                 }
             }
+
+            if (type == 0) // sum
+            {
+                for (const auto result : subResults)
+                {
+                    mathTotal += result;
+                }
+            }
+            else if (type == 1) // product
+            {
+                mathTotal = 1;
+                for (const auto result : subResults)
+                {
+                    mathTotal *= result;
+                }
+            }
+            else if (type == 2) // min
+            {
+                mathTotal = *std::min_element(subResults.begin(), subResults.end());
+            }
+            else if (type == 3) // max
+            {
+                mathTotal = *std::max_element(subResults.begin(), subResults.end());
+            }
+            else if (type == 5) // greater than
+            {
+                if (subResults.size() != 2) throw std::exception();
+                mathTotal = (subResults[0] > subResults[1]) ? 1ULL : 0ULL;
+            }
+            else if (type == 6) // less than
+            {
+                if (subResults.size() != 2) throw std::exception();
+                mathTotal = (subResults[0] < subResults[1]) ? 1ULL : 0ULL;
+            }
+            else if (type == 7) // equal
+            {
+                if (subResults.size() != 2) throw std::exception();
+                mathTotal = (subResults[0] == subResults[1]) ? 1ULL : 0ULL;
+            }
+            else throw std::exception();
         }
 
-        return make_pair(versionTotal, nextPacket);
+        return {versionTotal, mathTotal, nextPacket};
     }
 
     void Part1()
     {
-        TEST(BinToInt("001"sv), 1);
-        TEST(BinToInt("010"sv), 2);
-        TEST(BinToInt("011"sv), 3);
-        TEST(BinToInt("100"sv), 4);
-        TEST(BinToInt("101"sv), 5);
-        TEST(BinToInt("110"sv), 6);
-        TEST(BinToInt("111"sv), 7);
+        TEST(BinToInt("001"sv), 1ULL);
+        TEST(BinToInt("010"sv), 2ULL);
+        TEST(BinToInt("011"sv), 3ULL);
+        TEST(BinToInt("100"sv), 4ULL);
+        TEST(BinToInt("101"sv), 5ULL);
+        TEST(BinToInt("110"sv), 6ULL);
+        TEST(BinToInt("111"sv), 7ULL);
 
         std::string input;
         std::getline(std::cin, input);
@@ -138,69 +207,8 @@ namespace
             binary += HexToStr(c);
         }
 
-        auto nibble = NibblePacket(binary);
-        std::cout << nibble.first << std::endl;
-    }
-
-    std::pair<uint32_t, string_view> NibblePacketPart2(std::string_view input)
-    {
-        if (input.size() == 0) return make_pair(0UL, ""sv);
-
-        const string_view versionStr = input.substr(0, 3);
-        const auto version = BinToInt(versionStr);
-
-        const string_view typeStr = input.substr(3, 3);
-        const auto type = BinToInt(typeStr);
-
-        uint32_t versionTotal{ version };
-        string_view nextPacket;
-        if (type == 4)
-        {
-            uint32_t value{};
-            uint32_t skipAmount{5};
-            auto numberStr = input.substr(6);
-            while (numberStr[0] == '1')
-            {
-                auto temp = BinToInt(numberStr.substr(1, 4));
-                value = value << ((skipAmount % 5) - 1);
-                value += temp;
-
-                skipAmount += 5;
-                numberStr = numberStr.substr(5);
-            }
-            nextPacket = numberStr.substr(5);
-        }
-        else
-        {
-            if (input[6] == '0') // 15 bits
-            {
-                auto subpacketLengthStr = input.substr(7, 15);
-                auto subpacketLength = BinToInt(subpacketLengthStr);
-
-                nextPacket = input.substr(7 + 15);
-                while (std::distance(input.begin(), nextPacket.begin()) < (subpacketLength + 7 + 15))
-                {
-                    auto pair = NibblePacketPart2(nextPacket);
-
-                    nextPacket = pair.second;
-                    versionTotal += pair.first;
-                }
-            }
-            else if (input[6] == '1') // 11 bits
-            {
-                auto subpacketCountStr = input.substr(7, 11);
-                auto subpacketCount = BinToInt(subpacketCountStr);
-                nextPacket = input.substr(7 + 11);
-                for (auto i = 0UL; i < subpacketCount; ++i)
-                {
-                    auto pair = NibblePacketPart2(nextPacket);
-                    versionTotal += pair.first;
-                    nextPacket = pair.second;
-                }
-            }
-        }
-
-        return make_pair(versionTotal, nextPacket);
+        const auto nibble = NibblePacket(binary);
+        std::cout << nibble.versionSum << std::endl;
     }
 
     void Part2()
@@ -214,8 +222,8 @@ namespace
             binary += HexToStr(c);
         }
 
-        auto nibble = NibblePacketPart2(binary);
-        std::cout << nibble.first << std::endl;
+        const auto nibble = NibblePacket(binary);
+        std::cout << nibble.result << std::endl;
     }
 }
 
