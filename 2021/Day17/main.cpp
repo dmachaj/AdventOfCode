@@ -23,13 +23,13 @@ namespace
 {
     struct Target
     {
-        int32_t xMin, xMax, yMin, yMax;
+        int64_t xMin, xMax, yMin, yMax;
     };
 
-    bool DoesHitTarget(const Target& target, int32_t dx, int32_t dy)
+    bool DoesHitTarget(const Target& target, int64_t dx, int64_t dy)
     {
-        int32_t x{};
-        int32_t y{};
+        int64_t x{};
+        int64_t y{};
 
         while (true)
         {
@@ -80,14 +80,55 @@ namespace
             maxHeight += maxVelocity;
             maxVelocity -= 1;
         }
-        // DoesHitTarget(target, 7, 2);
 
         std::cout << maxHeight << std::endl;
     }
 
     void Part2()
     {
-        std::cout << 0 << std::endl;
+        const auto target = ParseInput();
+
+        std::unordered_set<uint64_t> xVelocities{};
+        for (auto i = 1LL; i <= target.xMax; ++i)
+        {
+            auto position = 0LL;
+            auto dx = i;
+            while (true)
+            {
+                position += dx;
+                --dx;
+
+                if ((position >= target.xMin) && (position <= target.xMax))
+                {
+                    xVelocities.emplace(i);
+                    break;
+                }
+
+                if (position > target.xMax)
+                {
+                    break;
+                }
+
+                if (dx == 0)
+                {
+                    break;
+                }
+            }
+        }
+
+        uint64_t result{};
+        for (auto i = target.yMin; i < std::abs(target.yMin); ++i)
+        {
+            for (auto x : xVelocities)
+            {
+                if (DoesHitTarget(target, x, i))
+                {
+                    ++result;
+                }
+            }
+        }
+
+        std::cout << result << std::endl;
     }
 }
 
