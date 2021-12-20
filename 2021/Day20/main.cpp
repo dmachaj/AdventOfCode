@@ -46,84 +46,111 @@ namespace
 
     using board_t = unordered_map<std::pair<int32_t, int32_t>, bool, PairHash>;
 
+    // Stupid hard-coded dimensions.  Give the 100x100 unique input space to grow one per iteration for 50 iterations in all directions.
+    constexpr auto c_yMin = -60L;
+    constexpr auto c_yMax = 160L;
+    constexpr auto c_xMin = -60L;
+    constexpr auto c_xMax = 160L;
+
     void PrintBoard(const board_t& board)
     {
-        auto yMin = std::min_element(board.begin(), board.end(), [](const auto& left, const auto& right) { return left.first.second < right.first.second; })->first.second;
-        auto yMax = std::max_element(board.begin(), board.end(), [](const auto& left, const auto& right) { return left.first.second < right.first.second; })->first.second;
-        auto xMin = std::min_element(board.begin(), board.end(), [](const auto& left, const auto& right) { return left.first.first < right.first.first; })->first.first;
-        auto xMax = std::max_element(board.begin(), board.end(), [](const auto& left, const auto& right) { return left.first.first < right.first.first; })->first.first;
-
-        for (auto y = yMin; y <= yMax; ++y)
+        for (auto y = c_yMin; y <= c_yMax; ++y)
         {
-            for (auto x = xMin; x <= xMax; ++x)
+            for (auto x = c_xMin; x <= c_xMax; ++x)
             {
-                std::cerr << (board.find(make_pair(x, y))->second ? "#" : ".");
+                const auto square = board.find(make_pair(x, y))->second;
+                std::cerr << (square ? "#" : ".");
             }
             std::cerr << std::endl;
         }
         std::cerr << std::endl;
     }
 
-    board_t RunAlgorithm(const board_t& board, const std::string& algo, int32_t startWidth, int32_t startHeight)
+    std::string BoardSquareToString(const board_t& board, int32_t x, int32_t y)
     {
-        auto yMin = std::min_element(board.begin(), board.end(), [](const auto& left, const auto& right) { return left.first.second < right.first.second; })->first.second;
-        auto yMax = std::max_element(board.begin(), board.end(), [](const auto& left, const auto& right) { return left.first.second < right.first.second; })->first.second;
-        auto xMin = std::min_element(board.begin(), board.end(), [](const auto& left, const auto& right) { return left.first.first < right.first.first; })->first.first;
-        auto xMax = std::max_element(board.begin(), board.end(), [](const auto& left, const auto& right) { return left.first.first < right.first.first; })->first.first;
-
-        board_t board2;
-        for (auto y = yMin - 1; y <= yMax + 1; ++y)
+        const auto iter = board.find(make_pair(x, y));
+        if (iter != board.end())
         {
-            for (auto x = xMin - 1; x <= xMax + 1; ++x)
+            if (iter->second)
+            {
+                return "1";
+            }
+            else
+            {
+                return "0";
+            }
+        }
+        return "0";
+    }
+
+    board_t RunAlgorithm(const board_t& board, const std::string& algo)
+    {
+        board_t board2;
+        for (auto y = c_yMin; y <= c_yMax; ++y)
+        {
+            for (auto x = c_xMin; x <= c_xMax; ++x)
             {
                 string bin;
-                (board.find(make_pair(x - 1, y - 1)) != board.end() && board.find(make_pair(x - 1, y - 1))->second) ? bin += "1" : bin += "0";
-                (board.find(make_pair(x, y - 1)) != board.end() && board.find(make_pair(x, y - 1))->second) ? bin += "1" : bin += "0";
-                (board.find(make_pair(x + 1, y - 1)) != board.end() && board.find(make_pair(x + 1, y - 1))->second) ? bin += "1" : bin += "0";
+                bin += BoardSquareToString(board, x - 1, y - 1);
+                bin += BoardSquareToString(board, x, y - 1);
+                bin += BoardSquareToString(board, x + 1, y - 1);
 
-                (board.find(make_pair(x - 1, y)) != board.end() && board.find(make_pair(x - 1, y))->second) ? bin += "1" : bin += "0";
-                (board.find(make_pair(x, y)) != board.end() && board.find(make_pair(x, y))->second) ? bin += "1" : bin += "0";
-                (board.find(make_pair(x + 1, y)) != board.end() && board.find(make_pair(x + 1, y))->second) ? bin += "1" : bin += "0";
-
-                (board.find(make_pair(x - 1, y + 1)) != board.end() && board.find(make_pair(x - 1, y + 1))->second) ? bin += "1" : bin += "0";
-                (board.find(make_pair(x, y + 1)) != board.end() && board.find(make_pair(x, y + 1))->second) ? bin += "1" : bin += "0";
-                (board.find(make_pair(x + 1, y + 1)) != board.end() && board.find(make_pair(x + 1, y + 1))->second) ? bin += "1" : bin += "0";
+                bin += BoardSquareToString(board, x - 1, y);
+                bin += BoardSquareToString(board, x, y);
+                bin += BoardSquareToString(board, x + 1, y);
+                
+                bin += BoardSquareToString(board, x - 1, y + 1);
+                bin += BoardSquareToString(board, x, y + 1);
+                bin += BoardSquareToString(board, x + 1, y + 1);
 
                 const uint64_t result = BinToInt(bin);
                 const bool algoResult = (algo[result] == '#');
                 board2[make_pair(x, y)] = algoResult;
             }
         }
+
+        // Stupid hack!
+        // The instability of the infinite surface and our limited view of it means that every other iteration
+        // the unknown space toggles between lit and dark.  However, the left/right edges treat space beyond
+        // the border as dark so the left/right edges wrongly stay lit instead of alternating like every other
+        // square.  Hack around this by detecting the right edge being different from the column next to it and
+        // if so make both edges dark to match.
+        if (board2.find(make_pair(c_xMax - 1, 0))->second != board2.find(make_pair(c_xMax, 0))->second)
+        {
+            for (auto y = c_yMin; y <= c_yMax; ++y)
+            {
+                board2[make_pair(c_xMin, y)] = false;
+                board2[make_pair(c_xMax, y)] = false;
+            }
+        }
+
         return board2;
     }
 
-    void Part1()
+    uint64_t RunIterations(const uint32_t iterationCount)
     {
         std::string algo;
         std::getline(std::cin, algo);
         std::cin.get(); // eat newline 
 
         int32_t yInput{};
-        int32_t xInput{};
-        unordered_map<std::pair<int32_t, int32_t>, bool, PairHash> board;
+        board_t board;
 
         std::string input;
         while (std::getline(std::cin, input))
         {
             for (auto i = 0UL; i < input.size(); ++i)
             {
-                board[make_pair(i, yInput)] = input[i] == '#';
+                board[make_pair(i, yInput)] = (input[i] == '#');
             }
             ++yInput;
-
-            xInput = input.size();
         }
 
-        PrintBoard(board);
-        board = RunAlgorithm(board, algo, xInput, yInput);
-        PrintBoard(board);
-        board = RunAlgorithm(board, algo, xInput, yInput);
-        PrintBoard(board);
+        for (auto i = 0UL; i < iterationCount; ++i)
+        {
+            board = RunAlgorithm(board, algo);
+        }
+        // PrintBoard(board);
 
         const auto result = std::accumulate(board.begin(), board.end(), 0UL,
             [](uint32_t sum, const auto& pos)
@@ -132,12 +159,19 @@ namespace
                 else return sum;
             });
 
+        return result;
+    }
+
+    void Part1()
+    {
+        const auto result = RunIterations(2);
         std::cout << result << std::endl;
     }
 
     void Part2()
     {
-        std::cout << 0 << std::endl;
+        const auto result = RunIterations(50);
+        std::cout << result << std::endl;
     }
 }
 
