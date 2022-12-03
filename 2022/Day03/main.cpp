@@ -40,14 +40,22 @@ namespace
             auto first = input.substr(0, input.length() / 2);
             auto second = input.substr(input.length() / 2);
             
-            for (const auto c : first)
-            {
-                if (second.find(c) != std::string::npos)
-                {
-                    total += GetCount(c);
-                    break;
-                }
-            }
+            // More elegant solution (after the fact) using STL algorithm.
+            std::sort(first.begin(), first.end());
+            std::sort(second.begin(), second.end());
+            std::vector<char> intersection;
+            std::set_intersection(first.begin(), first.end(), second.begin(), second.end(), std::back_inserter(intersection));
+            total += GetCount(intersection[0]);
+
+            // Solution from the live coding session.
+            // for (const auto c : first)
+            // {
+            //     if (second.find(c) != std::string::npos)
+            //     {
+            //         total += GetCount(c);
+            //         break;
+            //     }
+            // }
         }
         std::cout << total << std::endl;
     }
@@ -64,27 +72,40 @@ namespace
             std::string input3;
             std::getline(std::cin, input3);
 
-            bool exit{ false };
-            for (const auto c : input)
-            {
-                if (exit) break;
+            // More elegant solution (after the fact) using STL algorithm.
+            std::sort(input.begin(), input.end());
+            std::sort(input2.begin(), input2.end());
+            std::sort(input3.begin(), input3.end());
 
-                for (const auto c2 : input2)
-                {
-                    if (exit) break;
-                    if (c != c2) continue;
+            std::vector<char> intersection;
+            std::set_intersection(input.begin(), input.end(), input2.begin(), input2.end(), std::back_inserter(intersection));
 
-                    for (const auto c3 : input3)
-                    {
-                        if (c2 == c3)
-                        {
-                            total += GetCount(c);
-                            exit = true;
-                            break;
-                        }
-                    }
-                }
-            }
+            std::vector<char> intersection2;
+            std::set_intersection(intersection.begin(), intersection.end(), input3.begin(), input3.end(), std::back_inserter(intersection2));
+            total += GetCount(intersection2[0]);
+
+            // Solution from the live coding session.
+            // bool exit{ false };
+            // for (const auto c : input)
+            // {
+            //     if (exit) break;
+
+            //     for (const auto c2 : input2)
+            //     {
+            //         if (exit) break;
+            //         if (c != c2) continue;
+
+            //         for (const auto c3 : input3)
+            //         {
+            //             if (c2 == c3)
+            //             {
+            //                 total += GetCount(c);
+            //                 exit = true;
+            //                 break;
+            //             }
+            //         }
+            //     }
+            // }
         }
         std::cout << total << std::endl;
     }
