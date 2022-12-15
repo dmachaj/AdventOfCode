@@ -11,6 +11,8 @@
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
+#include <optional>
+#include <assert.h>
 #include "HelpfulInfrastructure.h"
 
 using namespace std; // I wouldn't normally do this
@@ -22,9 +24,9 @@ using namespace std::literals;
 
 namespace
 {
-    using point_t = std::pair<int, int>;
+    using point_t = std::pair<int64_t, int64_t>;
 
-    void MarkCoords(std::unordered_set<int>& xCoords, point_t sensor, point_t beacon, int c_lineToWatch)
+    void MarkCoords(std::unordered_set<int64_t>& xCoords, point_t sensor, point_t beacon, int64_t c_lineToWatch)
     {
         const auto distanceToBeacon = std::abs(sensor.first - beacon.first) + std::abs(sensor.second - beacon.second);
         const auto distanceToLine = std::abs(sensor.second - c_lineToWatch);
@@ -49,7 +51,7 @@ namespace
 
     void Part1()
     {
-        std::unordered_set<int> xCoords;
+        std::unordered_set<int64_t> xCoords;
         std::vector<point_t> invalidBeacons;
 
         std::string input;
@@ -101,34 +103,35 @@ namespace
         std::cout << xCoords.size() << std::endl;
     }
 
-    void MarkCoords2(std::unordered_set<int>& xCoords, point_t sensor, point_t beacon, int c_lineToWatch, int maxDimension)
+    bool IsWinner(const std::vector<std::pair<point_t, point_t>>& combos, int64_t x, int64_t y, int64_t c_maxDimension)
     {
-        const auto distanceToBeacon = std::abs(sensor.first - beacon.first) + std::abs(sensor.second - beacon.second);
-        const auto distanceToLine = std::abs(sensor.second - c_lineToWatch);
-
-        // Early exit if we are nowhere near the line.
-        if (distanceToLine > distanceToBeacon)
+        if ((x < 0) || (x > c_maxDimension))
         {
-            return;
+            return false;
         }
 
-        auto xLeft = sensor.first;
-        auto xRight = sensor.first;
-        for (auto y = 0; y <= (distanceToBeacon - distanceToLine); ++y)
+        if ((y < 0) || (y > c_maxDimension))
         {
-            if ((xLeft >= 0) && (xLeft <= maxDimension))
-            {
-                xCoords.emplace(xLeft);
-            }
-
-            if ((xRight >= 0) && (xRight <= maxDimension))
-            {
-                xCoords.emplace(xRight);
-            }
-
-            --xLeft;
-            ++xRight;
+            return false;
         }
+
+        point_t winner{};
+
+        for (const auto& combo : combos)
+        {
+            const auto& sensor = combo.first;
+            const auto& beacon = combo.second;
+            const auto distanceToBeacon = std::abs(sensor.first - beacon.first) + std::abs(sensor.second - beacon.second);
+
+            const auto distanceToX = std::abs(sensor.first - x);
+            const auto distanceToY = std::abs(sensor.second - y);
+            if (distanceToX + distanceToY <= distanceToBeacon)
+            {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     void Part2()
@@ -169,30 +172,67 @@ namespace
         }
 
         point_t winner{};
-        for (auto y = 0; y <= c_maxDimension; ++y)
+        // Algorithm summary:
+        //
+        // Crawl the outer edge of each diamond.  The answer -must- be immediately outside the bounds of at least one
+        // diamond and in reality several.  Quickly(ish) check that any given point along the way does not intersect
+        // anything.  If it doesn't, it is the answer.
+        for (const auto& combo : combos)
         {
-            if (y % 1000 == 0)
-            {
-                std::cerr << "Progress report.  y= " << y << std::endl;
-            }
-            std::unordered_set<int> xCoords;
-            for (const auto& combo : combos)
-            {
-                MarkCoords2(xCoords, combo.first, combo.second, y, c_maxDimension);
-            }
+            const auto& sensor = combo.first;
+            const auto& beacon = combo.second;
 
-            if (xCoords.size() != (c_maxDimension + 1))
+            const auto distanceToBeacon = std::abs(sensor.first - beacon.first) + std::abs(sensor.second - beacon.second);
+
+            auto top = sensor;
+            top.second -= distanceToBeacon + 1;
+            auto bottom = sensor;
+            bottom.second += distanceToBeacon + 1;
+            auto left = sensor;
+            left.first -= distanceToBeacon + 1;
+            auto right = sensor;
+            right.first += distanceToBeacon + 1;
+
+            for (auto x = left.first; x <= right.first; ++x)
             {
-                for (auto x = 0; x <= c_maxDimension; ++x)
+                if ((x < 0) || (x > c_maxDimension))
                 {
-                    if (xCoords.find(x) == xCoords.end())
+                    continue;
+                }
+
+                auto yTop = left.second - (x - left.first);
+                auto yBottom = left.second + (x - left.first);
+
+                if (x == sensor.first)
+                {
+                    auto myTop = make_pair(x, yTop);
+                    assert(top == myTop);
+                    auto myBottom = make_pair(x, yBottom);
+                    assert(bottom == myBottom);
+                }
+
+                if ((yTop >= 0) && (yTop < c_maxDimension))
+                {
+                    if (IsWinner(combos, x, yTop, c_maxDimension))
                     {
-                        winner = make_pair(x, y);
-                        break;
+                        winner = make_pair(x, yTop);
                     }
                 }
-                break;
+
+                if ((yBottom >= 0) && (yBottom < c_maxDimension))
+                {
+                    if (IsWinner(combos, x, yBottom, c_maxDimension))
+                    {
+                        winner = make_pair(x, yBottom);
+                    }
+                }
             }
+        }
+
+        if (winner.first == 0 && winner.second == 0)
+        {
+            std::cout << "Answer not found" << std::endl;
+            return;
         }
 
         std::cout << (winner.first * 4000000 + winner.second) << std::endl;
