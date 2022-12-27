@@ -187,17 +187,18 @@ bool TryMoveDown(const std::vector<char>& board, Piece& piece)
     return false;
 }
 
-int32_t RunSimulation(const std::vector<bool>& moves, int32_t cycleCount)
+int32_t RunSimulation(const std::vector<bool>& moves, std::function<bool(int32_t, int32_t)> terminateFn)
 {
     std::vector<char> board(c_boardWidth * 5, '.'); // pre-allocate 5 rows (arbitrary)
 
     int32_t highestPoint{};
     int32_t moveNumber{};
+    int32_t cycleCount{};
 
     std::vector<std::function<Piece(int32_t, int32_t)>> spawners =
         { SpawnBar, SpawnPlus, SpawnL, SpawnI, SpawnBox };
 
-    for (auto i = 0; i < cycleCount; ++i)
+    while(true)
     {
         const auto newHighest = ((highestPoint + 7) * c_boardWidth);
         while (newHighest > board.size())
@@ -212,7 +213,7 @@ int32_t RunSimulation(const std::vector<bool>& moves, int32_t cycleCount)
         }
 
         // Spawn piece
-        auto curr = spawners[i % spawners.size()](2, highestPoint + 3);
+        auto curr = spawners[cycleCount % spawners.size()](2, highestPoint + 3);
 
         // Move piece until it lands
         while (true)
@@ -241,8 +242,14 @@ int32_t RunSimulation(const std::vector<bool>& moves, int32_t cycleCount)
             highestPoint = std::max(highestPoint, y);
         }
         // PrintBottom(board, curr, 10);
+
+        ++cycleCount;
+        if (terminateFn(cycleCount, highestPoint))
+        {
+            return highestPoint;
+        }
     }
-    return highestPoint;
+    return -1;
 }
 
 void Part1()
@@ -250,34 +257,43 @@ void Part1()
     std::string input;
     std::getline(std::cin, input);
     const auto moves = ParseInput(input); // true == left
-    const auto highestPoint = RunSimulation(moves, 2022);
+    const auto highestPoint = RunSimulation(moves, [](int32_t cycleCount, int32_t highestPoint) { return cycleCount == 2022;});
     std::cout << highestPoint << std::endl;
 }
 
+// 1540545886050 too low
 void Part2()
 {
     std::string input;
     std::getline(std::cin, input);
     const auto moves = ParseInput(input); // true == left
 
-    int32_t cycleCount{};
-    for (auto i = moves.size(); i < std::numeric_limits<int32_t>().max(); ++i)
+    std::unordered_map<int32_t, int32_t> simulationResults;
+    int32_t highestCycleCount{};
+    const auto highestPoint = RunSimulation(moves, [&](int32_t cycleCount, int32_t highestPoint)
     {
-        if (i % 100 == 0) { std::cerr << "Iteration count: " << i << std::endl; }
-
-        const auto highestPointBase = RunSimulation(moves, i);
-        const auto highestPointDoubled = RunSimulation(moves, i * 2);
-
-        if (highestPointBase * 2 == highestPointDoubled)
+        highestCycleCount = cycleCount;
+        if (cycleCount % 10000 == 0) { std::cerr << "Iteration count: " << cycleCount << std::endl; }
+        simulationResults[cycleCount] = highestPoint;
+        if ((cycleCount > moves.size()) && (cycleCount % 2 == 0))
         {
-            cycleCount = i;
-            break;
+            const auto halved = simulationResults[cycleCount / 2];
+            if (halved * 2 == highestPoint)
+            {
+                return true;
+            }
         }
-    }
+        return false;
+    });
 
-    // const auto highestPoint = RunSimulation(moves, 2022);
+    constexpr uint64_t c_targetCycleCount{1000000000000};
+    const uint64_t cyclesNeeded = c_targetCycleCount / highestCycleCount;
+    const int32_t remainder = c_targetCycleCount % highestCycleCount;
 
-    std::cout << cycleCount << std::endl;
+    uint64_t result = (highestPoint * cyclesNeeded);
+    result += (uint64_t)simulationResults[remainder];
+
+    std::cout << result << std::endl;
 }
 
 int main()
