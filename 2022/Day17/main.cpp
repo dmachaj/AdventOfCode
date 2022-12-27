@@ -187,13 +187,13 @@ bool TryMoveDown(const std::vector<char>& board, Piece& piece)
     return false;
 }
 
-int32_t RunSimulation(const std::vector<bool>& moves, std::function<bool(int32_t, int32_t)> terminateFn)
+int32_t RunSimulation(const std::vector<bool>& moves, std::function<bool(int32_t, int32_t, int32_t, int32_t, const std::vector<char>&)> terminateFn)
 {
     std::vector<char> board(c_boardWidth * 5, '.'); // pre-allocate 5 rows (arbitrary)
 
     int32_t highestPoint{};
     int32_t moveNumber{};
-    int32_t cycleCount{};
+    int32_t blockCount{};
 
     std::vector<std::function<Piece(int32_t, int32_t)>> spawners =
         { SpawnBar, SpawnPlus, SpawnL, SpawnI, SpawnBox };
@@ -213,7 +213,7 @@ int32_t RunSimulation(const std::vector<bool>& moves, std::function<bool(int32_t
         }
 
         // Spawn piece
-        auto curr = spawners[cycleCount % spawners.size()](2, highestPoint + 3);
+        auto curr = spawners[blockCount % spawners.size()](2, highestPoint + 3);
 
         // Move piece until it lands
         while (true)
@@ -243,8 +243,8 @@ int32_t RunSimulation(const std::vector<bool>& moves, std::function<bool(int32_t
         }
         // PrintBottom(board, curr, 10);
 
-        ++cycleCount;
-        if (terminateFn(cycleCount, highestPoint))
+        ++blockCount;
+        if (terminateFn(blockCount, highestPoint, (moveNumber - 1) % moves.size(), (blockCount - 1) % spawners.size(), board))
         {
             return highestPoint;
         }
@@ -257,10 +257,42 @@ void Part1()
     std::string input;
     std::getline(std::cin, input);
     const auto moves = ParseInput(input); // true == left
-    const auto highestPoint = RunSimulation(moves, [](int32_t cycleCount, int32_t highestPoint) { return cycleCount == 2022;});
+    const auto highestPoint = RunSimulation(moves, [](int32_t blockCount, int32_t highestPoint, int32_t, int32_t, const std::vector<char>&) { return blockCount == 2022;});
     std::cout << highestPoint << std::endl;
 }
 
+struct BoardState
+{
+    std::vector<char> topRows;
+    int32_t windIndex;
+    int32_t pieceIndex;
+
+    static constexpr int32_t RowsToInclude{20};
+};
+
+bool operator==(const BoardState& left, const BoardState& right)
+{
+    return std::equal(left.topRows.begin(), left.topRows.end(), right.topRows.begin(), right.topRows.end()) &&
+        left.windIndex == right.windIndex &&
+        left.pieceIndex == right.pieceIndex;
+}
+
+struct BoardStateHash
+{
+    size_t operator()(const BoardState& b) const noexcept
+    {
+        size_t result{};
+        for (auto i = 0; i < b.topRows.size(); ++i)
+        {
+            result ^= std::hash<char>{}(b.topRows[i]) << i;
+        }
+        result ^= std::hash<int32_t>{}(b.windIndex) << b.topRows.size();
+        result ^= std::hash<int32_t>{}(b.pieceIndex) << (b.topRows.size() + 1);
+        return result;
+    }
+};
+
+// 1540804597680 too low
 // 1540545886050 too low
 void Part2()
 {
@@ -268,30 +300,50 @@ void Part2()
     std::getline(std::cin, input);
     const auto moves = ParseInput(input); // true == left
 
+    std::unordered_map<BoardState, int32_t, BoardStateHash> boardStates;
     std::unordered_map<int32_t, int32_t> simulationResults;
-    int32_t highestCycleCount{};
-    const auto highestPoint = RunSimulation(moves, [&](int32_t cycleCount, int32_t highestPoint)
+    int32_t blockCountEndOfCycle{};
+    int32_t blockCountBeginningOfCycle{};
+    const auto highestPoint = RunSimulation(moves, [&](int32_t blockCount, int32_t highestPoint, int32_t windIndex, int32_t pieceIndex, const std::vector<char>& board)
     {
-        highestCycleCount = cycleCount;
-        if (cycleCount % 10000 == 0) { std::cerr << "Iteration count: " << cycleCount << std::endl; }
-        simulationResults[cycleCount] = highestPoint;
-        if ((cycleCount > moves.size()) && (cycleCount % 2 == 0))
+        blockCountEndOfCycle = blockCount;
+        if (blockCount % 10000 == 0) { std::cerr << "Iteration count: " << blockCount << std::endl; }
+        simulationResults[blockCount] = highestPoint;
+
+        // Don't start looking for cycles until at least one round of moves is complete.  Eases bounds checking.
+        if (highestPoint > BoardState::RowsToInclude + 1)
         {
-            const auto halved = simulationResults[cycleCount / 2];
-            if (halved * 2 == highestPoint)
+            std::vector<char> boardTop;
+            auto boardIter = board.begin() + ((highestPoint - BoardState::RowsToInclude) * c_boardWidth);
+            std::copy(boardIter, boardIter + (BoardState::RowsToInclude * c_boardWidth), std::back_inserter(boardTop));
+            BoardState currentState{std::move(boardTop), windIndex, pieceIndex};
+
+            if (boardStates.find(currentState) != boardStates.end())
             {
+                blockCountBeginningOfCycle = boardStates[currentState];
                 return true;
             }
+            boardStates.emplace(std::move(currentState), blockCount);
         }
         return false;
     });
 
-    constexpr uint64_t c_targetCycleCount{1000000000000};
-    const uint64_t cyclesNeeded = c_targetCycleCount / highestCycleCount;
-    const int32_t remainder = c_targetCycleCount % highestCycleCount;
+    const uint64_t c_targetBlockCount{1000000000000 - (uint64_t)blockCountBeginningOfCycle};
+    const uint64_t blocksPerCycle = blockCountEndOfCycle - blockCountBeginningOfCycle;
+    const uint64_t cyclesNeeded = c_targetBlockCount / blocksPerCycle;
+    const uint64_t remainder = c_targetBlockCount % blocksPerCycle;
+    const uint64_t gainPerCycle = simulationResults[blockCountEndOfCycle] - simulationResults[blockCountBeginningOfCycle];
+    const uint64_t heightBeforeCycle = simulationResults[blockCountBeginningOfCycle - 1];
+    const uint64_t heightInRemainder = simulationResults[blockCountBeginningOfCycle + (int32_t)remainder - 1] - simulationResults[blockCountBeginningOfCycle - 1];
 
-    uint64_t result = (highestPoint * cyclesNeeded);
-    result += (uint64_t)simulationResults[remainder];
+    std::cerr << "The board cycled between these block counts: " << blockCountBeginningOfCycle << " " << blockCountEndOfCycle << std::endl;
+    std::cerr << "The cycle took " << blocksPerCycle << " blocks and increased the height by " << gainPerCycle << std::endl;
+    std::cerr << "Before the cycle began the height was " << heightBeforeCycle << std::endl;
+    std::cerr << "After the cycle there were " << remainder << " more blocks to make up the difference and those added height " << heightInRemainder << std::endl;
+
+    uint64_t result = heightBeforeCycle;
+    result += (gainPerCycle * cyclesNeeded);
+    result += heightInRemainder;
 
     std::cout << result << std::endl;
 }
