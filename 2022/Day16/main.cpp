@@ -20,18 +20,22 @@ using namespace std::literals;
 #pragma warning (disable: 4189) // unused variable
 #pragma warning (disable: 4100) // unused param
 
-void Part1()
+namespace
 {
-    std::string input;
-    while (std::getline(std::cin, input))
+    void Part1()
     {
-    }
-    std::cout << 0 << std::endl;
-}
+        std::string input;
+        while (std::getline(std::cin, input))
+        {
 
-void Part2()
-{
-    std::cout << 0 << std::endl;
+        }
+        std::cout << 0 << std::endl;
+    }
+
+    void Part2()
+    {
+        std::cout << 0 << std::endl;
+    }
 }
 
 int main()

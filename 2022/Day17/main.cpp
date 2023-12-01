@@ -39,7 +39,6 @@ std::vector<bool> ParseInput(const std::string& input)
 
 using Piece = std::vector<int32_t>;
 
-constexpr int32_t c_pieceCount{ 2022 };
 constexpr int32_t c_boardWidth{7};
 
 Piece SpawnBar(int32_t x, int32_t y)
@@ -126,6 +125,7 @@ void TryMoveLeft(const std::vector<char>& board, Piece& piece)
     {
         const auto before = box / c_boardWidth;
         --box;
+        if (box < 0) return; // underflow
         const auto after = box / c_boardWidth;
 
         if (before != after)
@@ -152,7 +152,7 @@ void TryMoveRight(const std::vector<char>& board, Piece& piece)
 
         if (before != after)
         {
-            return; // hit left wall
+            return; // hit right wall
         }
         else if (board[box] == '#')
         {
@@ -187,9 +187,9 @@ bool TryMoveDown(const std::vector<char>& board, Piece& piece)
     return false;
 }
 
-int32_t RunSimulation(const std::vector<bool>& moves, std::function<bool(int32_t, int32_t, int32_t, int32_t, const std::vector<char>&)> terminateFn)
+int32_t RunSimulation(const std::vector<bool>& moves, std::function<bool(int32_t, int32_t, bool, int32_t, int32_t, const std::vector<char>&)> terminateFn)
 {
-    std::vector<char> board(c_boardWidth * 5, '.'); // pre-allocate 5 rows (arbitrary)
+    std::vector<char> board(c_boardWidth * 7, '.'); // pre-allocate 7 rows (arbitrary)
 
     int32_t highestPoint{};
     int32_t moveNumber{};
@@ -200,16 +200,14 @@ int32_t RunSimulation(const std::vector<bool>& moves, std::function<bool(int32_t
 
     while(true)
     {
+        // Ensure at least 7 rows of buffer above the highest piece allocated
         const auto newHighest = ((highestPoint + 7) * c_boardWidth);
         while (newHighest > board.size())
         {
-            board.emplace_back('.');
-            board.emplace_back('.');
-            board.emplace_back('.');
-            board.emplace_back('.');
-            board.emplace_back('.');
-            board.emplace_back('.');
-            board.emplace_back('.');
+            for (auto i = 0; i < c_boardWidth; ++i)
+            {
+                board.emplace_back('.');
+            }
         }
 
         // Spawn piece
@@ -244,7 +242,7 @@ int32_t RunSimulation(const std::vector<bool>& moves, std::function<bool(int32_t
         // PrintBottom(board, curr, 10);
 
         ++blockCount;
-        if (terminateFn(blockCount, highestPoint, (moveNumber - 1) % moves.size(), (blockCount - 1) % spawners.size(), board))
+        if (terminateFn(blockCount, highestPoint, (moveNumber > moves.size()), (moveNumber - 1) % moves.size(), (blockCount - 1) % spawners.size(), board))
         {
             return highestPoint;
         }
@@ -257,7 +255,7 @@ void Part1()
     std::string input;
     std::getline(std::cin, input);
     const auto moves = ParseInput(input); // true == left
-    const auto highestPoint = RunSimulation(moves, [](int32_t blockCount, int32_t highestPoint, int32_t, int32_t, const std::vector<char>&) { return blockCount == 2022;});
+    const auto highestPoint = RunSimulation(moves, [](int32_t blockCount, int32_t highestPoint, bool, int32_t, int32_t, const std::vector<char>&) { return blockCount == 2022;});
     std::cout << highestPoint << std::endl;
 }
 
@@ -267,14 +265,21 @@ struct BoardState
     int32_t windIndex;
     int32_t pieceIndex;
 
-    static constexpr int32_t RowsToInclude{20};
+    static constexpr int32_t RowsToInclude{100};
 };
 
 bool operator==(const BoardState& left, const BoardState& right)
 {
-    return std::equal(left.topRows.begin(), left.topRows.end(), right.topRows.begin(), right.topRows.end()) &&
+    if (left.topRows.size() != right.topRows.size()) return false;
+    for (auto i = 0; i < left.topRows.size(); ++i)
+    {
+        if (left.topRows[i] != right.topRows[i]) return false;
+    }
+    // return std::equal(left.topRows.begin(), left.topRows.end(), right.topRows.begin(), right.topRows.end()) &&
+    return
         left.windIndex == right.windIndex &&
         left.pieceIndex == right.pieceIndex;
+    // return (left.windIndex * left.pieceIndex) == (right.windIndex * right.pieceIndex);
 }
 
 struct BoardStateHash
@@ -304,18 +309,19 @@ void Part2()
     std::unordered_map<int32_t, int32_t> simulationResults;
     int32_t blockCountEndOfCycle{};
     int32_t blockCountBeginningOfCycle{};
-    const auto highestPoint = RunSimulation(moves, [&](int32_t blockCount, int32_t highestPoint, int32_t windIndex, int32_t pieceIndex, const std::vector<char>& board)
+    const auto highestPoint = RunSimulation(moves, [&](int32_t blockCount, int32_t highestPoint, bool allJetsUsed, int32_t windIndex, int32_t pieceIndex, const std::vector<char>& board)
     {
         blockCountEndOfCycle = blockCount;
         if (blockCount % 10000 == 0) { std::cerr << "Iteration count: " << blockCount << std::endl; }
         simulationResults[blockCount] = highestPoint;
 
         // Don't start looking for cycles until at least one round of moves is complete.  Eases bounds checking.
-        if (highestPoint > BoardState::RowsToInclude + 1)
+        if (allJetsUsed && (highestPoint > BoardState::RowsToInclude + 1))
         {
             std::vector<char> boardTop;
-            auto boardIter = board.begin() + ((highestPoint - BoardState::RowsToInclude) * c_boardWidth);
-            std::copy(boardIter, boardIter + (BoardState::RowsToInclude * c_boardWidth), std::back_inserter(boardTop));
+            // auto boardIter = board.begin() + ((highestPoint - BoardState::RowsToInclude) * c_boardWidth);
+            // std::copy(boardIter, boardIter + (BoardState::RowsToInclude * c_boardWidth), std::back_inserter(boardTop));
+            std::copy(board.rbegin(), board.rbegin() + (BoardState::RowsToInclude * c_boardWidth), std::back_inserter(boardTop));
             BoardState currentState{std::move(boardTop), windIndex, pieceIndex};
 
             if (boardStates.find(currentState) != boardStates.end())
