@@ -12,7 +12,7 @@
             "args": [],
             "stopAtEntry": false,
             "cwd": "${fileDirname}",
-            "environment": [{"name": "PART_TO_RUN", "value": "Part2"}],
+            "environment": [{"name": "PART_TO_RUN", "value": "Part1"}],
             "console": "externalTerminal"
         }
     ]
