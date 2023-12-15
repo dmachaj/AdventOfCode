@@ -46,7 +46,7 @@ void Part1()
     {
         result += Hash(input);
         ++countHashes;
-        std::cerr << input << " hashes to " << Hash(input) << std::endl;
+        // std::cerr << input << " hashes to " << Hash(input) << std::endl;
     }
 
     std::cerr << countHashes << " hashes computed" << std::endl;
