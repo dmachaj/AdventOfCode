@@ -55,7 +55,90 @@ void Part1()
 
 void Part2()
 {
-    std::cout << 0 << std::endl;
+    std::string input;
+    std::getline(std::cin, input);
+
+    struct Box
+    {
+        struct Lens
+        {
+            std::string Label;
+            uint32_t Value{};
+        };
+        std::vector<Lens> Lenses;
+    };
+    std::vector<Box> boxes(256);
+
+    std::istringstream inStream(std::move(input));
+    while(std::getline(inStream, input, ','))
+    {
+        const auto eq = input.find('=');
+        bool replace{false};
+        const auto dash = input.find('-');
+        bool remove{false};
+
+        std::string label;
+        uint32_t hash{};
+        uint32_t lensValue{};
+        if (eq != input.npos)
+        {
+            label = input.substr(0, eq);
+            replace = true;
+            lensValue = std::atoi(input.substr(eq + 1).c_str());
+        }
+        else if (dash != input.npos)
+        {
+            label = input.substr(0, dash);
+            remove = true;
+        }
+        else throw std::exception();
+
+        hash = Hash(label);
+
+        if (remove)
+        {
+            Box& thisBox = boxes[hash];
+            const auto toRemove = std::find_if(thisBox.Lenses.begin(), thisBox.Lenses.end(),
+                [&label](Box::Lens const& lens)
+                {
+                    return lens.Label == label;
+                });
+            
+            if (toRemove != thisBox.Lenses.end())
+            {
+                thisBox.Lenses.erase(toRemove);
+            }
+        }
+        else
+        {
+            Box& thisBox = boxes[hash];
+            const auto toReplace = std::find_if(thisBox.Lenses.begin(), thisBox.Lenses.end(),
+                [&label](Box::Lens const& lens)
+                {
+                    return lens.Label == label;
+                });
+            
+            if (toReplace != thisBox.Lenses.end())
+            {
+                toReplace->Value = lensValue;
+            }
+            else
+            {
+                thisBox.Lenses.emplace_back(Box::Lens{label, lensValue});
+            }
+        }
+    }
+
+    uint64_t result{};
+    for (auto i = 0; i < boxes.size(); ++i)
+    {
+        for (auto j = 0; j < boxes[i].Lenses.size(); ++j)
+        {
+            result += (i + 1) * (j + 1) * boxes[i].Lenses[j].Value;
+        }
+    }
+
+    std::cout << result << std::endl;
 }
 
 int main()
