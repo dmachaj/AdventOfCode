@@ -183,9 +183,57 @@ void Part1()
     std::cout << result << std::endl;
 }
 
+std::string RemapCommand(std::string const& input)
+{
+    const auto digitsStr = input.substr(6, 5);
+    char dirChar = input[11];
+
+    const auto digits = std::strtoull(digitsStr.c_str(), nullptr, 16);
+    char dir{};
+    switch (dirChar)
+    {
+    case '0':
+        dir = 'R';
+        break;
+    case '1':
+        dir = 'D';
+        break;
+    case '2':
+        dir = 'L';
+        break;
+    case '3':
+        dir = 'U';
+        break;
+    default: throw std::exception();
+    }
+
+    std::ostringstream outStr;
+    outStr << dir << " " << digits << std::flush;
+    return outStr.str();
+}
+
 void Part2()
 {
-    std::cout << 0 << std::endl;
+    int boardSize;
+    std::cin >> boardSize;
+    std::cin.get(); // eat newline
+
+    std::vector<bool> board(boardSize * boardSize, false);
+
+    std::pair<int, int> currentPosition{ boardSize / 3, boardSize / 3};
+    std::string input;
+    while (std::getline(std::cin, input))
+    {
+        input = RemapCommand(input);
+        std::cerr << input << std::endl;
+        // RunCommand(board, boardSize, input, currentPosition);
+    }
+
+    // DumpBoard(board, boardSize);
+    // auto result = (boardSize * boardSize) - CountEmpty(board, boardSize);
+
+    uint64_t result{};
+    std::cout << result << std::endl;
 }
 
 int main()
