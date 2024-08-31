@@ -4,7 +4,7 @@ public class Program : IProgram
 {
     public void Part1()
     {
-        List<int> numbers = new List<int>();
+        List<int> numbers = new();
         string? line;
         while (!string.IsNullOrEmpty(line = Console.ReadLine()))
         {
@@ -28,7 +28,31 @@ public class Program : IProgram
 
     public void Part2()
     {
-        Console.WriteLine("1");
+        List<int> numbers = new();
+        string? line;
+        while (!string.IsNullOrEmpty(line = Console.ReadLine()))
+        {
+            numbers.Add(int.Parse(line));
+        }
+
+        foreach (int a in numbers)
+        {
+            foreach (int b in numbers)
+            {
+                foreach (int c in numbers)
+                {
+                    if (a == b) continue;
+                    if (a == c) continue;
+                    if (b == c) continue;
+
+                    if ((a + b + c) == 2020)
+                    {
+                        Console.WriteLine($"{a * b * c}");
+                        return;
+                    }
+                }
+            }
+        }
     }
 
     public static void Main()

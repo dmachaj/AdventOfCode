@@ -13,8 +13,10 @@
             "args": [],
             "cwd": "${workspaceFolder}",
             "stopAtEntry": false,
-            "env": { "PART_TO_RUN": "Part1" },
-            "console": "internalConsole"
+            "env": {
+                "PART_TO_RUN": "Part1"
+            },
+            "console": "integratedTerminal"
         },
         {
             "name": "(Windows) Launch",
@@ -24,7 +26,12 @@
             "args": [],
             "stopAtEntry": false,
             "cwd": "${fileDirname}",
-            "environment": [{"name": "PART_TO_RUN", "value": "Part1"}],
+            "environment": [
+                {
+                    "name": "PART_TO_RUN",
+                    "value": "Part1"
+                }
+            ],
             "console": "externalTerminal"
         }
     ]
