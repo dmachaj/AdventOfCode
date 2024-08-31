@@ -2,6 +2,17 @@ param([string]$SubDir)
 
 $exePath = Join-Path (Get-Location) "main.exe"
 
+if (!(Test-Path $exePath))
+{
+    Write-Host "C++ exe not found, trying C# exe"
+    $exePath = Join-Path (Get-Location) "\bin\Debug\net8.0\main.exe"
+}
+
+if (!(Test-Path $exePath))
+{
+    throw "$exePath not found"
+}
+
 # Set an environment variable to the subdirectory name so that the C++ code can decide at runtime whether to run part1 or part2
 $env:PART_TO_RUN = $SubDir;
 
