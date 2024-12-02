@@ -24,4 +24,4 @@ The C# code in this project uses .net8 (or newer).  To build simply run dotnet:
 3. `..\..\verify.cmd Part1` to check the first problem.
 4. `..\..\verify.cmd Part2` to check the second problem.
 
-After completion you can run `clean-build-resuilts.cmd` from the root of the repo to clean up.
+After completion you can run `clean-build-results.cmd` from the root of the repo to clean up.
