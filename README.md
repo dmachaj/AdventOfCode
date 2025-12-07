@@ -26,9 +26,16 @@ The C# code in this project uses .net8 (or newer).  To build simply run dotnet:
 
 After completion you can run `clean-build-results.cmd` from the root of the repo to clean up.
 
-## Swapping out stdin for file io (for large inputs that don't fit on the clipboard when debugging)
+## Helpful notes to self
+
+### Swapping out stdin for file io (for large inputs that don't fit on the clipboard when debugging)
 
 1. Add `#include <fstream>`
 2. Add `#include <istream>`
 3. Add to top of function `std::ifstream file(R"(Part1\unique.in)");`
 4. Replace input loop `while (std::getline(file, input))`
+
+### Printing fixed with integers
+
+1. Add `#include <iomanip>`
+2. `std::cerr << std::setw(3) << std::setfill(' ') << NUMBER`
